@@ -1,22 +1,18 @@
 const test = require('ava')
+const { readFileSync } = require('fs')
 
-const nearAPI = require("near-api-js");
-const {
-	utils: {
-		PublicKey,
-		format: { parseNearAmount, formatNearAmount },
-	},
-} = nearAPI;
+import { setupKeypom, parseNearAmount } from 'keypom-js';
 
 const wsCore = require("@near-wallet-selector/core");
 const { setupWalletSelector } = wsCore
 
-const kpLib = require("../lib/lib/keypom");
-const { setupKeypom } = kpLib
+//funder
+const { account_id: accountId, public_key: publicKey, private_key: secretKey } = JSON.parse(readFileSync('./credentials.json'))
 
-const accountId = PublicKey.fromString(process.env.TEST_ACCOUNT_PUBKEY).data.toString('hex')
+
+
 /// mocking for tests
-const lsAccount = `near-api-js:keystore:${accountId}:testnet`
+// const lsAccount = `near-api-js:keystore:${accountId}:testnet`
 
 /// mocking for tests
 const _ls = {}
@@ -42,6 +38,20 @@ let
 	networkId = 'testnet',
 	contractId = 'testnet',
 	selector, wallet;
+
+test('init some keypom-trial account', async (t) => {
+
+	await initKeypom({
+		network: 'testnet',
+		funder: {
+			accountId,
+			secretKey,
+		}
+	})
+
+	
+	
+});
 
 test('init', async (t) => {
 
