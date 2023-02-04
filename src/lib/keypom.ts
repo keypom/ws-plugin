@@ -5,6 +5,7 @@ import {
 	FunctionCallAction,
 	WalletBehaviourFactory,
 	waitFor,
+	FinalExecutionOutcome,
 } from "@near-wallet-selector/core";
 
 import { autoSignIn, initConnection, getAccount, signIn, signOut, signAndSendTransactions } from './keypom-lib' 
@@ -18,13 +19,16 @@ declare global {
 
 export interface KeypomParams {
 	iconUrl?: string;
+	deprecated?: boolean;
 }
 
 const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
-	metadata,
-	logger,
 	options,
+	metadata,
+	store,
 	provider,
+	emitter,
+	logger,
 }) => {
 
 	initConnection(options.network)
@@ -79,14 +83,22 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 				actions,
 			});
 
-			return signAndSendTransactions({
-				transactions: [
-					{
-						receiverId,
-						actions: transformActions(actions),
-					},
-				],
-			});
+			let res;
+			try {
+				res = signAndSendTransactions({
+					transactions: [
+						{
+							receiverId,
+							actions: transformActions(actions),
+						},
+					],
+				});
+			} catch (e) {
+				/// user cancelled or near network error
+				console.warn(e);
+			}
+
+			return res[0] as FinalExecutionOutcome;
 		},
 
 		async signAndSendTransactions({ transactions }) {
@@ -102,13 +114,14 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 				console.warn(e);
 			}
 
-			return res;
+			return res as FinalExecutionOutcome[];
 		},
 	};
 };
 
 export function setupKeypom({
 	iconUrl = nearWalletIcon,
+	deprecated = false,
 }: KeypomParams = {}): WalletModuleFactory<InjectedWallet> {
 	return async () => {
 
@@ -125,7 +138,7 @@ export function setupKeypom({
 				iconUrl,
 				downloadUrl:
 					"https://example.com",
-				deprecated: false,
+				deprecated,
 				available: true,
 			},
 			init: Keypom,

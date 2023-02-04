@@ -16,7 +16,6 @@ const {
 import { BN } from "bn.js";
 import { AddKeyPermission, Action } from "@near-wallet-selector/core";
 
-
 const gas = '200000000000000'
 
 const networks = {
