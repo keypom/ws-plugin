@@ -808,10 +808,10 @@ js-yaml@^3.14.1:
     argparse "^1.0.7"
     esprima "^4.0.0"
 
-keypom-js@^1.2.0-rc.1:
-  version "1.2.0-rc.1"
-  resolved "https://registry.yarnpkg.com/keypom-js/-/keypom-js-1.2.0-rc.1.tgz#e5b21529900e1d64c77d5cdb8129f7ac85014e3e"
-  integrity sha512-xLmEfquJTvVj9K9kVTvR/dNSEDCiwhKoIaAMPJgPoUO+EURlviB5W0JzEPxZg9qO2ALRzCE6jrrWlnwXtFe70w==
+keypom-js@^1.2.1-rc.1:
+  version "1.2.1-rc.1"
+  resolved "https://registry.yarnpkg.com/keypom-js/-/keypom-js-1.2.1-rc.1.tgz#f74cfab10a58ed4ec8da93adfe59ea7ac0839cfb"
+  integrity sha512-RchWjYbI/ZH8YJzXQp4aAtPWN+V4y4gEbLffkCQdxeKyt0XWao1EN18vTC17/bfti2qFaJkdEXrZFdK7v4wlGw==
   dependencies:
     "@near-wallet-selector/core" "^7.5.0"
     "@types/react" "^18.0.26"

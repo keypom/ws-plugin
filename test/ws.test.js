@@ -11,6 +11,38 @@ const DROP_ROOT = 'linkdrop-beta.keypom.testnet'
 //funder
 const { account_id: accountId, public_key: publicKey, private_key: secretKey } = JSON.parse(readFileSync('./credentials.json'))
 
+// helpers for keypom account contract args
+const RECEIVER_HEADER = '|kR|'
+const ACTION_HEADER = '|kA|'
+const PARAM_START = '|kP|'
+const PARAM_STOP = '|kS|'
+const wrapParams = (params, newParams = {}) => {
+	Object.entries(params).forEach(([k, v]) => {
+		if (Array.isArray(v)) v = v.join()
+		newParams[PARAM_START+k] = v + PARAM_STOP
+	})
+	return newParams
+}
+
+const genArgs = (json) => {
+	const newJson = {
+		transactions: []
+	}
+	json.transactions.forEach((tx) => {
+		const newTx = {}
+		newTx[RECEIVER_HEADER] = tx.contractId
+		newTx.actions = []
+		tx.actions.forEach((action) => {
+			const newAction = {}
+			newAction[ACTION_HEADER] = action.type
+			// newAction.params = action.params
+			newAction.params = wrapParams(action.params)
+			newTx.actions.push(newAction)
+		})
+		newJson.transactions.push(newTx)
+	})
+	return newJson
+}
 /// mocking for tests
 // const lsAccount = `near-api-js:keystore:${accountId}:testnet`
 
@@ -65,14 +97,17 @@ test('createDrop for trial account and claim to create trial account', async (t)
 	const { keys: { publicKeys, secretKeys } } = await createDrop({
 		numKeys: 1,
 		config: {
-			dropRoot: DROP_ROOT
+			dropRoot: DROP_ROOT,
 		},
-		depositPerUseNEAR: 0.2,
+		// depositPerUseNEAR: 0.2,
 		fcData: {
+			// config: {
+			// 	attachedGas: '100000000000000'
+			// },
 			methods: [[{
 				receiverId: DROP_ROOT,
 				methodName: 'create_account_advanced',
-				attachedDeposit: parseNearAmount('0.75'),
+				attachedDeposit: parseNearAmount('0.5'),
 				args: JSON.stringify({
 					new_account_id,
 					options: {
@@ -85,8 +120,20 @@ test('createDrop for trial account and claim to create trial account', async (t)
 						}],
 					}
 				}),
-			}]],
-			attachedGas: '100000000000000'
+			},
+			{
+				receiverId: new_account_id,
+				methodName: 'setup',
+				attachedDeposit: parseNearAmount('0.5'),
+				args: JSON.stringify(wrapParams({
+					contracts: [new_account_id, 'guest-book.testnet'],
+					amounts: ['1', '0.01'],
+					methods: ['*', '*'],
+					funder: accountId,
+					repay: parseNearAmount('0.1'),
+				})),
+			}
+			]],
 		}
 	})
 

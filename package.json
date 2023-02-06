@@ -4,10 +4,10 @@
   "description": "Keypom Wallet via wallet-selector + Keypom Link",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "yarn build && yarn ava",
-    "ava": "ava test/ws.test.js -vs --timeout=5m",
+    "test": "yarn build && yarn build-contract && yarn ava test/ws.test.js -vs --timeout=5m",
+    "test-contract": "yarn build-contract && yarn ava test/contract.test.js -vs --timeout=5m",
     "build": "npx tsc",
-    "publish": "npx tsc && npm publish"
+		"build-contract": "cd contract && ./build.sh && cd .."
   },
   "author": "mattlockyer",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "@near-wallet-selector/core": "^7.7.0",
     "ava": "^4.3.3",
     "dotenv": "^16.0.3",
-    "keypom-js": "^1.2.0-rc.1",
+    "keypom-js": "^1.2.1-rc.1",
     "near-api-js": "^0.44.2"
   },
   "ava": {
