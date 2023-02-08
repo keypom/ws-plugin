@@ -1,0 +1,60 @@
+{
+  "name": "guest-book",
+  "version": "0.1.0",
+  "license": "(MIT AND Apache-2.0)",
+  "scripts": {
+    "clean": "rimraf ./dist ./.parcel-cache",
+    "start": "yarn clean && parcel src/index.html --open"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-react": "^7.13.13",
+    "@parcel/transformer-sass": "2.8.3",
+    "@typescript-eslint/eslint-plugin": "^4.22.1",
+    "@typescript-eslint/parser": "^4.33.0",
+    "babel-jest": "^27.4.2",
+    "buffer": "^5.5.0",
+    "crypto-browserify": "^3.12.0",
+    "eslint": "^7.32.0",
+    "gh-pages": "^3.2.3",
+    "nodemon": "^2.0.7",
+    "process": "^0.11.10",
+    "react-test-renderer": "^17.0.2",
+    "sass": "^1.44.0",
+    "stream-browserify": "^3.0.0",
+    "typescript": "^4.5.2"
+  },
+  "dependencies": {
+    "@metamask/detect-provider": "^2.0.0",
+    "@near-wallet-selector/core": "v7.0.3",
+    "@near-wallet-selector/modal-ui": "^7.0.3",
+    "@near-wallet-selector/my-near-wallet": "^7.0.3",
+    "big.js": "^6.1.1",
+    "env-cmd": "^10.1.0",
+    "ethers": "^5.6.4",
+    "keypom-ws-plugin": "^0.0.2",
+    "near-api-js": "^0.44.2",
+    "out": "^1.1.0",
+    "parcel": "^2.7.0",
+    "prop-types": "^15.7.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "regenerator-runtime": "^0.13.9"
+  },
+  "alias": {
+    "process": false
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

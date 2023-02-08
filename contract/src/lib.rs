@@ -11,6 +11,7 @@ const RECEIVER_HEADER: &str = "\"|kR|\":";
 const ACTION_HEADER: &str = "\"|kA|\":";
 const PARAM_STOP: &str = "|kS|\"";
 const COMMA: &str = ",";
+const ANY_METHOD: &str = "*";
 
 /// repeated string literals (in parsing tx payloads)
 const DEPOSIT: &str = "|kP|deposit";
@@ -63,15 +64,18 @@ pub fn execute() {
 	// rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
+
+	log(rules_str);
+
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
 	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
-	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
-		.split(",")
-		.map(|a| {
-			let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
-			amount
-		})
-		.collect();
+	// let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
+	// 	.split(",")
+	// 	.map(|a| {
+	// 		let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
+	// 		amount
+	// 	})
+	// 	.collect();
 
 	// args
     unsafe { near_sys::input(REGISTER_0) };
@@ -92,6 +96,8 @@ pub fn execute() {
 
 		let (mut receiver_id, tx_rest) = tx.split_once(COMMA).unwrap_or_else(|| sys::panic());
 		receiver_id = &receiver_id[1..receiver_id.len()-1];
+
+		log(receiver_id);
 
 		let receiver_index_option = contracts.iter().position(|c| c == &receiver_id);
 		if receiver_index_option.is_none() {
@@ -127,8 +133,8 @@ pub fn execute() {
 			let (mut action_type, params) = action.split_once(COMMA).unwrap_or_else(|| sys::panic());
 			action_type = &action_type[1..action_type.len()-1];
 
-			// log(action_type);
-			// log(params);
+			log(action_type);
+			log(params);
 
 			// match
 
@@ -139,14 +145,14 @@ pub fn execute() {
 					log(method_name);
 					log(&methods[receiver_index].join(":"));
 
-					if !methods[receiver_index].contains(&method_name) {
+					if methods[receiver_index][0] != ANY_METHOD && !methods[receiver_index].contains(&method_name) {
 						sys::panic()
 					}
 					let args = &get_string(params, "|kP|args").replace("\\", "");
 					let deposit = get_u128(params, DEPOSIT);
-					if deposit > amounts[receiver_index] {
-						sys::panic()
-					}
+					// if deposit > amounts[receiver_index] {
+					// 	sys::panic()
+					// }
 					let gas = get_u128(params, "|kP|gas") as u64;
 					unsafe {
 						near_sys::promise_batch_action_function_call(

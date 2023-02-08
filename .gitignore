@@ -8,6 +8,7 @@ package-lock.json
 /out
 notes
 credentials.json
+cred-v2.json
 
 #keys
 /neardev

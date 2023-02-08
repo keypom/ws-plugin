@@ -13,6 +13,8 @@ const {
 	},
 } = nearAPI;
 
+import { genArgs } from "./keypom-v2-utils";
+
 import { BN } from "bn.js";
 import { AddKeyPermission, Action } from "@near-wallet-selector/core";
 
@@ -37,12 +39,11 @@ let near, connection, logger, account, accountId, networkId, keyPair, publicKey;
 
 export const autoSignIn = async () => {
 	/// TODO validation
-	const secretKey = window.location.href.split('#/keypom/')[1]
+	const [autoAccountId, secretKey] = window.location.href.split('#/keypom/')[1].split('/')
+	accountId = autoAccountId
 
 	keyPair = KeyPair.fromString(secretKey)
 	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
-
-	accountId = publicKey.data.toString('hex')
 
 	localStorage.setItem(`near-api-js:keystore:${accountId}:testnet`, `ed25519:${secretKey}`)
 	localStorage.setItem('near-wallet-selector:contract', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
@@ -75,7 +76,19 @@ export const signAndSendTransactions = async ({ transactions }) => {
 		throw new Error("Wallet not signed in");
 	}
 
-	const transformedTransactions = await transformTransactions(transactions)
+	const args = genArgs({ transactions })
+
+	const transformedTransactions = await transformTransactions([{
+		receiverId: accountId,
+		actions: [{
+			type: 'FunctionCall',
+			params: {
+				methodName: 'execute',
+				args,
+				gas: '100000000000000',
+			}
+		}]
+	}])
 
 	return Promise.all(transformedTransactions.map((tx) => account.signAndSendTransaction(tx)))
 };
