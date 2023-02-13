@@ -1,4 +1,6 @@
 import { WalletModuleFactory, InjectedWallet } from "@near-wallet-selector/core";
+import icon from "./icon";
+export { icon };
 declare global {
     interface Window {
         near: any;

@@ -55,8 +55,10 @@ test('init wallet-selector and test v2 tx', async (t) => {
 	});
 
 	wallet = await selector.wallet('keypom')
+	console.log('wallet: ', wallet)
 
 	const accounts = await wallet.getAccounts()
+	console.log('accounts: ', accounts)
 
 	t.is(accounts[0].accountId, accountId)
 

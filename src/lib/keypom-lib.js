@@ -39,7 +39,12 @@ let near, connection, logger, account, accountId, networkId, keyPair, publicKey;
 
 export const autoSignIn = async () => {
 	/// TODO validation
-	const [autoAccountId, secretKey] = window.location.href.split('#/keypom/')[1].split('/')
+	console.log("IM SPLITTING")
+	const trialInfo = window.location.href.split('/keypom-trial/')[1];
+	const [autoAccountId, secretKey] = trialInfo.split('/')
+
+	console.log('secretKey: ', secretKey)
+	console.log('autoAccountId: ', autoAccountId)
 	accountId = autoAccountId
 
 	keyPair = KeyPair.fromString(secretKey)
@@ -69,6 +74,7 @@ export const initConnection = (network, logFn) => {
 export const getAccount = async () => ({ accountId });
 export const signIn = async () => account;
 export const signOut = () => { };
+export const isSignedIn = () => { accountId == undefined};
 
 export const signAndSendTransactions = async ({ transactions }) => {
 

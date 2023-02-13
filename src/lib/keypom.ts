@@ -8,8 +8,11 @@ import {
 	FinalExecutionOutcome,
 } from "@near-wallet-selector/core";
 
-import { autoSignIn, initConnection, getAccount, signIn, signOut, signAndSendTransactions } from './keypom-lib' 
-import { nearWalletIcon } from "../assets/icons";
+import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions } from './keypom-lib' 
+import icon from "./icon";
+
+export { icon };
+
 
 declare global {
 	interface Window {
@@ -31,6 +34,7 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 	logger,
 }) => {
 
+	console.log("I'm initting keypom?")
 	initConnection(options.network)
 
 	const isValidActions = (actions: Array<Action>): actions is Array<FunctionCallAction> => {
@@ -58,6 +62,14 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 			const res = signOut()
 			return res
 		},
+
+		async isSignedIn() {
+			console.log("im calling is signed in")
+			const res = isSignedIn();
+			console.log('res: ', res)
+			return res;
+		},
+
 
 		async verifyOwner({ message }) {
 			logger.log("Keypom:verifyOwner", { message });
@@ -120,11 +132,13 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 };
 
 export function setupKeypom({
-	iconUrl = nearWalletIcon,
+	iconUrl = icon,
 	deprecated = false,
 }: KeypomParams = {}): WalletModuleFactory<InjectedWallet> {
+	console.log('iconUrl: ', iconUrl)
 	return async () => {
-
+		
+		console.log("IM AUTO SIGNING IN")
 		await autoSignIn()
 
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);

@@ -16,7 +16,6 @@ let trialAccountId, trialPublicKey, trialSecretKey
 
 const TRIAL_ACCOUNT_FUNDING_AMOUNT = parseNearAmount('2')
 
-
 //@ts-ignore
 test('initKeypom', async (t) => {
 
@@ -25,7 +24,8 @@ test('initKeypom', async (t) => {
 		funder: {
 			accountId,
 			secretKey,
-		}
+		},
+		keypomContractId: "dev-1676251578683-64759206866175"
 	})
 
 	const { near } = getEnv();
@@ -84,7 +84,7 @@ test('createDrop for trial account and claim to create trial account', async (t)
 				//@ts-ignore
 				attachedDeposit: parseNearAmount('0'),
 				args: JSON.stringify(wrapParams({
-					contracts: [trialAccountId, 'guest-book.testnet'],
+					contracts: [trialAccountId, 'dev-1676298343226-57701595703433'],
 					amounts: ['1', '0.01'],
 					methods: ['*', '*'],
 					funder: accountId,

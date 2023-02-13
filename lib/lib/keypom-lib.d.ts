@@ -5,6 +5,7 @@ export function getAccount(): Promise<{
 }>;
 export function signIn(): Promise<any>;
 export function signOut(): void;
+export function isSignedIn(): void;
 export function signAndSendTransactions({ transactions }: {
     transactions: any;
 }): Promise<any[]>;
