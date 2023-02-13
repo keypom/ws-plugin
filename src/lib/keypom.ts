@@ -8,7 +8,7 @@ import {
 	FinalExecutionOutcome,
 } from "@near-wallet-selector/core";
 
-import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions, parseUrl } from './keypom-lib' 
+import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions, parseUrl, viewMethod, claimTrialAccount, getEnv, getLocalStorageKeypomEnv, setLocalStorageKeypomEnv } from './keypom-lib' 
 import icon from "./icon";
 
 export { icon };
@@ -138,17 +138,31 @@ export function setupKeypom({
 	iconUrl = icon,
 	deprecated = false,
 }: KeypomParams = {}): WalletModuleFactory<InjectedWallet> {
-	console.log('iconUrl: ', iconUrl)
 	return async () => {
 		
 		console.log("IM AUTO SIGNING IN")
+		// const contractSource = await viewMethod({
+		// 	contractId: 'v1-4.keypom.testnet', 
+		// 	methodName: 'contract_source_metadata', 
+		// 	args: {}
+		// });
+		// console.log('contractSource: ', contractSource)
+
+		let env = getEnv();
+		console.log('env before: ', env)
+
+		getLocalStorageKeypomEnv();
 
 		const validUrl = parseUrl();
+		console.log('validUrl: ', validUrl)
 		if (validUrl) {
-			const userTrialAccount = 
-			autoSignIn(userTrialAccount);
-
+			claimTrialAccount();
+			autoSignIn();
+			setLocalStorageKeypomEnv();
 		}
+
+		env = getEnv();
+		console.log('env after: ', env)
 
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 

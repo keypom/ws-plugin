@@ -35,37 +35,80 @@ const networks = {
 	}
 }
 
+const KEYPOM_LOCAL_STORAGE_KEY = 'keypom-wallet-selector';
+
 let near, connection, logger, account, accountId, networkId, keyPair, secretKey, publicKey, keypomContractId;
 
+export const getEnv = () => {
+	return {
+		networkId,
+		accountId,
+		account,
+		secretKey,
+		publicKey,
+		keyPair,
+		keypomContractId,
+	}
+}
+
+export const getLocalStorageKeypomEnv = () => {
+	const localStorageAccountId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:accountId`);
+	if (!localStorageAccountId) {
+		return;
+	}
+
+	accountId = localStorageAccountId;
+	networkId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:networkId`);
+	secretKey = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:secretKey`);
+	keypomContractId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:keypomContractId`);
+	keyPair = KeyPair.fromString(secretKey)
+	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
+}
+
+export const setLocalStorageKeypomEnv = () => {
+	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:accountId`, accountId);
+	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:networkId`, networkId);
+	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:secretKey`, secretKey);
+	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:keypomContractId`, keypomContractId);
+}
+
 export const claimTrialAccount = async () => {
-	const newAccountId = `keypom-trial-${Date.now()}.linkdrop-beta.keypom.testnet`;
+	let newAccountId = `keypom-trial-${Date.now()}.linkdrop-beta.keypom.testnet`;
+	newAccountId = `test-1676298422580.linkdrop-beta.keypom.testnet`;
+
+	accountId = newAccountId;
 }
 
 export const parseUrl = (): boolean => {
 	/// TODO validation
-	const trialInfo = window.location.href.split('/keypom-trial/')[1];
-	const [keypomContractId, trialSecretKey] = trialInfo.split('/')
+	const split = window.location.href.split('/keypom-trial/');
+
+	if (split.length < 2) {
+		return false;
+	}
+	
+	const trialInfo = split[1];
+	const 	[keypomContractId, trialSecretKey] = trialInfo.split('#')
 	console.log('trialSecretKey: ', trialSecretKey)
 	console.log('keypomContractId: ', keypomContractId)
 
-	if (keypomContractId && trialSecretKey) {
-		secretKey = trialSecretKey
-		keyPair = KeyPair.fromString(trialSecretKey)
-		publicKey = PublicKey.fromString(keyPair.publicKey.toString())
-		
-		console.log('publicKey: ', publicKey)
-
-		return true
+	if (!keypomContractId || !trialSecretKey) {
+		return false;
 	}
 
-	return false;
+	networkId = keypomContractId.split('keypom.testnet').length > 1 ? 'testnet' : 'mainnet';
+	secretKey = trialSecretKey
+	keyPair = KeyPair.fromString(trialSecretKey)
+	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
+	
+	console.log('secretKey: ', secretKey)
+
+	return true
 }
 
 
-export const autoSignIn = (autoAccountId) => {
+export const autoSignIn = () => {
 	console.log('secretKey: ', secretKey)
-	console.log('autoAccountId: ', autoAccountId)
-	accountId = autoAccountId
 
 	localStorage.setItem(`near-api-js:keystore:${accountId}:testnet`, `ed25519:${secretKey}`)
 	
@@ -217,3 +260,19 @@ const createAction = (action) => {
 		throw new Error("Invalid action type");
 	}
   };
+
+// Make a read-only call to retrieve information from the network
+export const viewMethod = async ({ contractId, methodName, args = {} }) => {
+	const provider = new nearAPI.providers.JsonRpcProvider({ url: networks[networkId].nodeUrl });
+
+	let res = await provider.query({
+		request_type: 'call_function',
+		account_id: contractId,
+		method_name: methodName,
+		args_base64: Buffer.from(JSON.stringify(args)).toString('base64'),
+		finality: 'optimistic',
+	});
+	console.log('res: ', res)
+	
+	//return JSON.parse(Buffer.from(res.result).toString());
+}
