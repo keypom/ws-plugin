@@ -35,29 +35,61 @@ const networks = {
 	}
 }
 
-let near, connection, logger, account, accountId, networkId, keyPair, publicKey;
+let near, connection, logger, account, accountId, networkId, keyPair, secretKey, publicKey, keypomContractId;
 
-export const autoSignIn = async () => {
+export const claimTrialAccount = async () => {
+	const newAccountId = `keypom-trial-${Date.now()}.linkdrop-beta.keypom.testnet`;
+}
+
+export const parseUrl = (): boolean => {
 	/// TODO validation
-	console.log("IM SPLITTING")
 	const trialInfo = window.location.href.split('/keypom-trial/')[1];
-	const [autoAccountId, secretKey] = trialInfo.split('/')
+	const [keypomContractId, trialSecretKey] = trialInfo.split('/')
+	console.log('trialSecretKey: ', trialSecretKey)
+	console.log('keypomContractId: ', keypomContractId)
 
+	if (keypomContractId && trialSecretKey) {
+		secretKey = trialSecretKey
+		keyPair = KeyPair.fromString(trialSecretKey)
+		publicKey = PublicKey.fromString(keyPair.publicKey.toString())
+		
+		console.log('publicKey: ', publicKey)
+
+		return true
+	}
+
+	return false;
+}
+
+
+export const autoSignIn = (autoAccountId) => {
 	console.log('secretKey: ', secretKey)
 	console.log('autoAccountId: ', autoAccountId)
 	accountId = autoAccountId
 
-	keyPair = KeyPair.fromString(secretKey)
-	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
-
 	localStorage.setItem(`near-api-js:keystore:${accountId}:testnet`, `ed25519:${secretKey}`)
-	localStorage.setItem('near-wallet-selector:contract', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
-	localStorage.setItem('near-wallet-selector:selectedWalletId', "\"keypom\"")
+	
+	// Contract
+	//localStorage.setItem('near-wallet-selector:contract', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
+	localStorage.setItem('near-wallet-selector:contract:pending', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
+
+	// Selected Wallet
+	//localStorage.setItem('near-wallet-selector:selectedWalletId', "\"keypom\"")
+	localStorage.setItem('near-wallet-selector:selectedWalletId:pending', "\"keypom\"")
+	
+	// let recentWallets = localStorage.get('near-wallet-selector:recentlySignedInWallets');
+
+	// console.log('recentWallets: ', recentWallets)
+	// if (recentWallets) {
+	// 	recentWallets.push(autoAccountId);
+	// }
+	//localStorage.setItem('near-wallet-selector:recentlySignedInWallets', JSON.stringify(["keypom"]))
+	localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
 }
 
-export const initConnection = (network, logFn) => {
+export const initConnection = (network, logFn?) => {
 	networkId = network.networkId
-	const network = networks[networkId]
+	network = networks[networkId]
 	const keyStore = new BrowserLocalStorageKeyStore()
 
 	keyStore.setKey(networkId, accountId, keyPair)
@@ -74,15 +106,19 @@ export const initConnection = (network, logFn) => {
 export const getAccount = async () => ({ accountId });
 export const signIn = async () => account;
 export const signOut = () => { };
-export const isSignedIn = () => { accountId == undefined};
+export const isSignedIn = () => { 
+	console.log('accountId: ', accountId)
+	return accountId != undefined && accountId != null
+};
 
-export const signAndSendTransactions = async ({ transactions }) => {
-
+export const signAndSendTransactions = async ({ transactions }: {transactions: Array<{receiverId?: string, actions: Action[]}>}) => {
+	console.log('transactions: ', transactions)
 	if (!account) {
 		throw new Error("Wallet not signed in");
 	}
 
 	const args = genArgs({ transactions })
+	console.log('args: ', args)
 
 	const transformedTransactions = await transformTransactions([{
 		receiverId: accountId,
@@ -96,12 +132,16 @@ export const signAndSendTransactions = async ({ transactions }) => {
 		}]
 	}])
 
-	return Promise.all(transformedTransactions.map((tx) => account.signAndSendTransaction(tx)))
+	console.log('transformedTransactions: ', transformedTransactions)
+	const promises = transformedTransactions.map((tx) => account.signAndSendTransaction(tx));
+	console.log('promises: ', promises)
+	return await Promise.all(promises)
+	
 };
 
 const transformTransactions = async (
     transactions
-  ) => {
+) => {
     const { networkId, signer, provider } = account.connection;
 
     return Promise.all(
@@ -157,11 +197,11 @@ const createAction = (action) => {
 	  case "AddKey": {
 		const { publicKey, accessKey } = action.params;
   
-		return nearTransactions.addKey(
-		  utils.PublicKey.from(publicKey),
-		  // TODO: Use accessKey.nonce? near-api-js seems to think 0 is fine?
-		  getAccessKey(accessKey.permission)
-		);
+		// return nearTransactions.addKey(
+		//   utils.PublicKey.from(publicKey),
+		//   // TODO: Use accessKey.nonce? near-api-js seems to think 0 is fine?
+		//   getAccessKey(accessKey.permission)
+		// );
 	  }
 	  case "DeleteKey": {
 		const { publicKey } = action.params;

@@ -8,7 +8,7 @@ import {
 	FinalExecutionOutcome,
 } from "@near-wallet-selector/core";
 
-import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions } from './keypom-lib' 
+import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions, parseUrl } from './keypom-lib' 
 import icon from "./icon";
 
 export { icon };
@@ -94,14 +94,17 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 				receiverId,
 				actions,
 			});
+			
+			console.log('receiverId: ', receiverId)
+			console.log('actions: ', actions)
 
 			let res;
 			try {
-				res = signAndSendTransactions({
+				res = await signAndSendTransactions({
 					transactions: [
 						{
 							receiverId,
-							actions: transformActions(actions),
+							actions,
 						},
 					],
 				});
@@ -139,7 +142,13 @@ export function setupKeypom({
 	return async () => {
 		
 		console.log("IM AUTO SIGNING IN")
-		await autoSignIn()
+
+		const validUrl = parseUrl();
+		if (validUrl) {
+			const userTrialAccount = 
+			autoSignIn(userTrialAccount);
+
+		}
 
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 
