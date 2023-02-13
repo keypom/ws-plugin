@@ -8,7 +8,7 @@ import {
 	FinalExecutionOutcome,
 } from "@near-wallet-selector/core";
 
-import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions, parseUrl, viewMethod, claimTrialAccount, getEnv, getLocalStorageKeypomEnv, setLocalStorageKeypomEnv } from './keypom-lib' 
+import { autoSignIn, initConnection, getAccount, signIn, signOut, isSignedIn, signAndSendTransactions, parseUrl, viewMethod, claimTrialAccount, getEnv, getLocalStorageKeypomEnv, setLocalStorageKeypomEnv, switchAccount } from './keypom-lib' 
 import icon from "./icon";
 
 export { icon };
@@ -33,9 +33,7 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 	emitter,
 	logger,
 }) => {
-
-	console.log("I'm initting keypom?")
-	initConnection(options.network)
+	initConnection(options.network, logger)
 
 	const isValidActions = (actions: Array<Action>): actions is Array<FunctionCallAction> => {
 		return actions.every((x) => x.type === "FunctionCall");
@@ -53,23 +51,44 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 
 	// return the wallet interface for wallet-selector
 	return {
+		get networkId() {
+			const {networkId} = getEnv();
+			return networkId;
+		},
+
+		async account() {
+			logger.log("Keypom:account");
+			const {account} = getEnv();
+			return account;
+		},
+
+		async switchAccount(id) {
+			switchAccount(id);
+		},
+
+		async getAccountId() {
+			logger.log("Keypom:getAccountId");
+			const {accountId} = getEnv();
+			return accountId;
+		},
+
+		async isSignedIn() {
+			logger.log("Keypom:isSignedIn");
+			const res = isSignedIn();
+			return res;
+		},
+		
 		async signIn() {
+			logger.log("Keypom:signIn");
 			const account = await signIn();
 			return [account];
 		},
 
 		async signOut() {
+			logger.log("Keypom:signOut");
 			const res = signOut()
 			return res
 		},
-
-		async isSignedIn() {
-			console.log("im calling is signed in")
-			const res = isSignedIn();
-			console.log('res: ', res)
-			return res;
-		},
-
 
 		async verifyOwner({ message }) {
 			logger.log("Keypom:verifyOwner", { message });
@@ -94,9 +113,6 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 				receiverId,
 				actions,
 			});
-			
-			console.log('receiverId: ', receiverId)
-			console.log('actions: ', actions)
 
 			let res;
 			try {
@@ -132,37 +148,23 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 			return res as FinalExecutionOutcome[];
 		},
 	};
-};
+};	
 
 export function setupKeypom({
 	iconUrl = icon,
 	deprecated = false,
 }: KeypomParams = {}): WalletModuleFactory<InjectedWallet> {
 	return async () => {
-		
 		console.log("IM AUTO SIGNING IN")
-		// const contractSource = await viewMethod({
-		// 	contractId: 'v1-4.keypom.testnet', 
-		// 	methodName: 'contract_source_metadata', 
-		// 	args: {}
-		// });
-		// console.log('contractSource: ', contractSource)
-
-		let env = getEnv();
-		console.log('env before: ', env)
-
-		getLocalStorageKeypomEnv();
-
+		const envExists = getLocalStorageKeypomEnv();
+		
 		const validUrl = parseUrl();
 		console.log('validUrl: ', validUrl)
-		if (validUrl) {
+		if (validUrl && !envExists) {
 			claimTrialAccount();
 			autoSignIn();
 			setLocalStorageKeypomEnv();
 		}
-
-		env = getEnv();
-		console.log('env after: ', env)
 
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 

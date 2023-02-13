@@ -51,32 +51,68 @@ export const getEnv = () => {
 	}
 }
 
-export const getLocalStorageKeypomEnv = () => {
-	const localStorageAccountId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:accountId`);
-	if (!localStorageAccountId) {
-		return;
+export const getLocalStorageKeypomEnv = (): boolean => {
+	const localStorageDataJson = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
+	if (!localStorageDataJson) {
+		return false;
 	}
 
-	accountId = localStorageAccountId;
-	networkId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:networkId`);
-	secretKey = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:secretKey`);
-	keypomContractId = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:keypomContractId`);
+	const localStorageData = JSON.parse(localStorageDataJson);
+
+	accountId = localStorageData.accountId;
+	networkId = localStorageData.networkId;
+	secretKey = localStorageData.secretKey;
+	keypomContractId = localStorageData.keypomContractId
 	keyPair = KeyPair.fromString(secretKey)
 	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
+
+	return true;
 }
 
 export const setLocalStorageKeypomEnv = () => {
-	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:accountId`, accountId);
-	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:networkId`, networkId);
-	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:secretKey`, secretKey);
-	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:keypomContractId`, keypomContractId);
+	const dataToWrite = JSON.stringify({
+		accountId,
+		networkId,
+		secretKey,
+		keypomContractId,
+	});
+
+	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`, dataToWrite);
 }
 
 export const claimTrialAccount = async () => {
-	let newAccountId = `keypom-trial-${Date.now()}.linkdrop-beta.keypom.testnet`;
-	newAccountId = `test-1676298422580.linkdrop-beta.keypom.testnet`;
+	let isTrialClaimed = false;
+	try {
+		const dropInfo = await viewMethod({
+			contractId: keypomContractId, 
+			methodName: 'get_drop_information', 
+			args: {
+				key: keyPair.publicKey.toString()
+			}
+		});
+		console.log('dropInfo: ', dropInfo)
+	} catch(e: any) {
+		if (e.toString().includes("no drop ID for PK")) {
+			isTrialClaimed = true;
+		} else {
+			console.log("error", e);
+		}
+	}
 
-	accountId = newAccountId;
+	let newAccountId;
+	if(!isTrialClaimed) {
+		const desiredAccountId = window.prompt("Enter a desired account ID");
+		console.log('desiredAccountId: ', desiredAccountId)
+		newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
+	} else {
+		const desiredAccountId = window.prompt("Enter an existing account", `test-1676298422580`);
+		console.log('desiredAccountId: ', desiredAccountId)
+		newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
+	}
+	
+	console.log('isTrialClaimed: ', isTrialClaimed)
+	switchAccount(newAccountId);
+	console.log('newAccountId: ', newAccountId)
 }
 
 export const parseUrl = (): boolean => {
@@ -88,15 +124,16 @@ export const parseUrl = (): boolean => {
 	}
 	
 	const trialInfo = split[1];
-	const 	[keypomContractId, trialSecretKey] = trialInfo.split('#')
+	const 	[trialKeypomContract, trialSecretKey] = trialInfo.split('#')
 	console.log('trialSecretKey: ', trialSecretKey)
-	console.log('keypomContractId: ', keypomContractId)
+	console.log('trialKeypomContract: ', trialKeypomContract)
 
-	if (!keypomContractId || !trialSecretKey) {
+	if (!trialKeypomContract || !trialSecretKey) {
 		return false;
 	}
 
-	networkId = keypomContractId.split('keypom.testnet').length > 1 ? 'testnet' : 'mainnet';
+	keypomContractId = trialKeypomContract;
+	networkId = trialKeypomContract.split('keypom.testnet').length > 1 ? 'testnet' : 'mainnet';
 	secretKey = trialSecretKey
 	keyPair = KeyPair.fromString(trialSecretKey)
 	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
@@ -130,9 +167,10 @@ export const autoSignIn = () => {
 	localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
 }
 
-export const initConnection = (network, logFn?) => {
+export const initConnection = (network, logFn) => {
 	networkId = network.networkId
 	network = networks[networkId]
+	logger = logFn
 	const keyStore = new BrowserLocalStorageKeyStore()
 
 	keyStore.setKey(networkId, accountId, keyPair)
@@ -148,20 +186,26 @@ export const initConnection = (network, logFn?) => {
 
 export const getAccount = async () => ({ accountId });
 export const signIn = async () => account;
-export const signOut = () => { };
+export const signOut = () => { 
+	near = connection = logger = account = accountId = networkId = keyPair = secretKey = publicKey, keypomContractId = undefined;
+	localStorage.removeItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
+};
+export const switchAccount = (id) => { 
+	logger.log("Keypom:switchAccount");
+	accountId = id;
+	setLocalStorageKeypomEnv();
+};
+
 export const isSignedIn = () => { 
-	console.log('accountId: ', accountId)
 	return accountId != undefined && accountId != null
 };
 
 export const signAndSendTransactions = async ({ transactions }: {transactions: Array<{receiverId?: string, actions: Action[]}>}) => {
-	console.log('transactions: ', transactions)
 	if (!account) {
 		throw new Error("Wallet not signed in");
 	}
 
 	const args = genArgs({ transactions })
-	console.log('args: ', args)
 
 	const transformedTransactions = await transformTransactions([{
 		receiverId: accountId,
@@ -175,9 +219,7 @@ export const signAndSendTransactions = async ({ transactions }: {transactions: A
 		}]
 	}])
 
-	console.log('transformedTransactions: ', transformedTransactions)
 	const promises = transformedTransactions.map((tx) => account.signAndSendTransaction(tx));
-	console.log('promises: ', promises)
 	return await Promise.all(promises)
 	
 };
@@ -263,16 +305,20 @@ const createAction = (action) => {
 
 // Make a read-only call to retrieve information from the network
 export const viewMethod = async ({ contractId, methodName, args = {} }) => {
-	const provider = new nearAPI.providers.JsonRpcProvider({ url: networks[networkId].nodeUrl });
+	console.log('args: ', args)
+	console.log('methodName: ', methodName)
+	console.log('contractId: ', contractId)
+	const nodeUrl = networks[networkId].nodeUrl;
+	console.log('nodeUrl: ', nodeUrl)
+	const provider = new nearAPI.providers.JsonRpcProvider({ url: nodeUrl });
 
-	let res = await provider.query({
+	let res: any = await provider.query({
 		request_type: 'call_function',
 		account_id: contractId,
 		method_name: methodName,
 		args_base64: Buffer.from(JSON.stringify(args)).toString('base64'),
 		finality: 'optimistic',
 	});
-	console.log('res: ', res)
 	
-	//return JSON.parse(Buffer.from(res.result).toString());
+	return JSON.parse(Buffer.from(res.result).toString());
 }
