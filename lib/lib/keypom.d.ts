@@ -9,5 +9,6 @@ declare global {
 export interface KeypomParams {
     iconUrl?: string;
     deprecated?: boolean;
+    desiredUrl?: string;
 }
-export declare function setupKeypom({ iconUrl, deprecated, }?: KeypomParams): WalletModuleFactory<InjectedWallet>;
+export declare function setupKeypom({ iconUrl, deprecated, desiredUrl, }?: KeypomParams): WalletModuleFactory<InjectedWallet>;

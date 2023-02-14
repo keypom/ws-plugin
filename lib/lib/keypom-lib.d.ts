@@ -10,8 +10,8 @@ export declare const getEnv: () => {
 };
 export declare const getLocalStorageKeypomEnv: () => boolean;
 export declare const setLocalStorageKeypomEnv: () => void;
-export declare const claimTrialAccount: () => Promise<void>;
-export declare const parseUrl: () => boolean;
+export declare const claimTrialAccount: (emitter: any) => Promise<void>;
+export declare const parseUrl: (desiredUrl: any) => boolean;
 export declare const autoSignIn: () => void;
 export declare const initConnection: (network: any, logFn: any) => void;
 export declare const getAccount: () => Promise<{

@@ -80,7 +80,7 @@ export const setLocalStorageKeypomEnv = () => {
 	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`, dataToWrite);
 }
 
-export const claimTrialAccount = async () => {
+export const claimTrialAccount = async (emitter) => {
 	let isTrialClaimed = false;
 	try {
 		const dropInfo = await viewMethod({
@@ -99,25 +99,29 @@ export const claimTrialAccount = async () => {
 		}
 	}
 
-	let newAccountId;
-	if(!isTrialClaimed) {
-		const desiredAccountId = window.prompt("Enter a desired account ID");
-		console.log('desiredAccountId: ', desiredAccountId)
-		newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
-	} else {
-		const desiredAccountId = window.prompt("Enter an existing account", `test-1676298422580`);
-		console.log('desiredAccountId: ', desiredAccountId)
-		newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
-	}
+	let newAccountId = `test-1676383642371.linkdrop-beta.keypom.testnet`;
+	// if(!isTrialClaimed) {
+		// 	const desiredAccountId = window.prompt("Enter a desired account ID");
+		// 	console.log('desiredAccountId: ', desiredAccountId)
+		// 	newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
+	// } else {
+	// 	const desiredAccountId = window.prompt("Enter an existing account", `test-1676383642371`);
+	// 	console.log('desiredAccountId: ', desiredAccountId)
+	// 	newAccountId = `${desiredAccountId}.linkdrop-beta.keypom.testnet`
+	// }
 	
 	console.log('isTrialClaimed: ', isTrialClaimed)
-	switchAccount(newAccountId);
+	accountId = newAccountId;
 	console.log('newAccountId: ', newAccountId)
+	
+	console.log("im emitting sign in")
+	emitter.emit("signedIn", {contractId: keypomContractId, methodNames: ["foo", "bar"], accounts: [accountId]});
 }
 
-export const parseUrl = (): boolean => {
+export const parseUrl = (desiredUrl): boolean => {
 	/// TODO validation
-	const split = window.location.href.split('/keypom-trial/');
+	desiredUrl = desiredUrl || '/keypom-trial/';
+	const split = window.location.href.split(desiredUrl);
 
 	if (split.length < 2) {
 		return false;
@@ -150,11 +154,11 @@ export const autoSignIn = () => {
 	localStorage.setItem(`near-api-js:keystore:${accountId}:testnet`, `ed25519:${secretKey}`)
 	
 	// Contract
-	//localStorage.setItem('near-wallet-selector:contract', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
+	localStorage.setItem('near-wallet-selector:contract', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
 	localStorage.setItem('near-wallet-selector:contract:pending', "{\"contractId\":\"testnet\",\"methodNames\":[]}")
 
 	// Selected Wallet
-	//localStorage.setItem('near-wallet-selector:selectedWalletId', "\"keypom\"")
+	localStorage.setItem('near-wallet-selector:selectedWalletId', "\"keypom\"")
 	localStorage.setItem('near-wallet-selector:selectedWalletId:pending', "\"keypom\"")
 	
 	// let recentWallets = localStorage.get('near-wallet-selector:recentlySignedInWallets');
@@ -163,7 +167,7 @@ export const autoSignIn = () => {
 	// if (recentWallets) {
 	// 	recentWallets.push(autoAccountId);
 	// }
-	//localStorage.setItem('near-wallet-selector:recentlySignedInWallets', JSON.stringify(["keypom"]))
+	localStorage.setItem('near-wallet-selector:recentlySignedInWallets', JSON.stringify(["keypom"]))
 	localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
 }
 
@@ -185,7 +189,7 @@ export const initConnection = (network, logFn) => {
 };
 
 export const getAccount = async () => ({ accountId });
-export const signIn = async () => account;
+export const signIn = async () => {console.log("i am signing in lol"); return account};
 export const signOut = () => { 
 	near = connection = logger = account = accountId = networkId = keyPair = secretKey = publicKey, keypomContractId = undefined;
 	localStorage.removeItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
@@ -193,10 +197,12 @@ export const signOut = () => {
 export const switchAccount = (id) => { 
 	logger.log("Keypom:switchAccount");
 	accountId = id;
+	console.log('switching accountId: ', accountId)
 	setLocalStorageKeypomEnv();
 };
 
 export const isSignedIn = () => { 
+	console.log('is signed in: accountId: ', accountId)
 	return accountId != undefined && accountId != null
 };
 
