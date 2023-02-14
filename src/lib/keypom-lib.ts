@@ -17,6 +17,7 @@ import { genArgs } from "./keypom-v2-utils";
 
 import { BN } from "bn.js";
 import { AddKeyPermission, Action } from "@near-wallet-selector/core";
+import { setupModal } from "./modals/modal";
 
 const gas = '200000000000000'
 
@@ -101,6 +102,13 @@ export const claimTrialAccount = async () => {
 			console.log("error", e);
 		}
 	}
+
+	const modal = setupModal({
+		title: "this is my title",
+		description: "this is my description",
+	});
+	
+	modal.show();
 
 	let newAccountId = `test-1676383642371.linkdrop-beta.keypom.testnet`;
 	// if(!isTrialClaimed) {
