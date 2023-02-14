@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { KeypomModal } from "./KeypomModal";
+import {KeypomModal} from "./KeypomModal";
 
 const MODAL_ELEMENT_ID = "keypom-trial-modal";
 
@@ -22,8 +22,9 @@ export interface KeypomTrialModal {
 
 let modalInstance: KeypomTrialModal | null = null;
 
-export const setupModal = (
-  options: ModalOptions
+export const setupKeypomModal = (
+  options: ModalOptions,
+  onSubmit
 ): KeypomTrialModal => {
   const el = document.createElement("div");
   el.id = MODAL_ELEMENT_ID;
@@ -37,11 +38,10 @@ export const setupModal = (
   const render = (visible = false) => {
     root.render(
       <KeypomModal
-        title={options.title}
-        description={options.description}
         options={options}
         visible={visible}
         hide={() => render(false)}
+        onSubmit={onSubmit}
       />
     );
   };

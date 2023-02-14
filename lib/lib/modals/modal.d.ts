@@ -10,4 +10,4 @@ export interface KeypomTrialModal {
     show(): void;
     hide(): void;
 }
-export declare const setupModal: (options: ModalOptions) => KeypomTrialModal;
+export declare const setupKeypomModal: (options: ModalOptions, onSubmit: any) => KeypomTrialModal;

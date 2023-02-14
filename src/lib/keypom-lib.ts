@@ -17,7 +17,7 @@ import { genArgs } from "./keypom-v2-utils";
 
 import { BN } from "bn.js";
 import { AddKeyPermission, Action } from "@near-wallet-selector/core";
-import { setupModal } from "./modals/modal";
+import { setupKeypomModal } from "./modals/modal";
 
 const gas = '200000000000000'
 
@@ -83,6 +83,10 @@ export const setLocalStorageKeypomEnv = () => {
 	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`, dataToWrite);
 }
 
+const onSubmitAccountId = async (accountId: string) => {
+	console.log('accountId Submitted From Form: ', accountId)
+}
+
 export const claimTrialAccount = async () => {
 	let isTrialClaimed = false;
 	try {
@@ -103,10 +107,10 @@ export const claimTrialAccount = async () => {
 		}
 	}
 
-	const modal = setupModal({
+	const modal = setupKeypomModal({
 		title: "this is my title",
 		description: "this is my description",
-	});
+	}, onSubmitAccountId);
 	
 	modal.show();
 

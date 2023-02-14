@@ -19,7 +19,9 @@
     "keypom-js": "^1.3.4",
     "near-api-js": "^0.44.2",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "@emotion/styled": "^11.10.5",
+    "@mui/material": "^5.11.9"
   },
   "ava": {
     "require": [
