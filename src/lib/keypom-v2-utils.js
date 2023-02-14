@@ -29,7 +29,7 @@ const genArgs = (json) => {
 		tx.actions.forEach((action) => {
 			const newAction = {}
 			newAction[ACTION_HEADER] = action.type
-			// newAction.params = action.params
+			newAction.params = wrapParams(action.params)
 			newTx.actions.push(newAction)
 		})
 		newJson.transactions.push(newTx)

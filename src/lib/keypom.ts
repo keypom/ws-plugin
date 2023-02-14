@@ -34,18 +34,7 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 	emitter,
 	logger,
 }) => {
-	console.log("IM AUTO SIGNING IN")
-	const envExists = getLocalStorageKeypomEnv();
-	
-	const validUrl = parseUrl("/keypom-url/");
-
-	console.log('validUrl: ', validUrl)
-	if (validUrl && !envExists) {
-		claimTrialAccount(emitter);
-		autoSignIn();
-		setLocalStorageKeypomEnv();
-	}
-	
+	console.log("I AM INITTING KEYPOM?????");
 	initConnection(options.network, logger)
 
 	const isValidActions = (actions: Array<Action>): actions is Array<FunctionCallAction> => {
@@ -126,7 +115,10 @@ const Keypom: WalletBehaviourFactory<InjectedWallet> = async ({
 				receiverId,
 				actions,
 			});
-
+			
+			console.log('receiverId: ', receiverId)
+			console.log('actions: ', actions)
+			
 			let res;
 			try {
 				res = await signAndSendTransactions({
@@ -170,7 +162,19 @@ export function setupKeypom({
 }: KeypomParams = {}): WalletModuleFactory<InjectedWallet> {
 	return async () => {
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
+		console.log("IM AUTO SIGNING IN")
+		const envExists = getLocalStorageKeypomEnv();
 		
+		const validUrl = parseUrl("/keypom-url/");
+	
+		console.log('validUrl: ', validUrl)
+		console.log('envExists: ', envExists)
+		if (validUrl && !envExists) {
+			await claimTrialAccount();
+			autoSignIn();
+			setLocalStorageKeypomEnv();
+		}
+
 		return {
 			id: "keypom",
 			type: "injected",

@@ -53,6 +53,7 @@ export const getEnv = () => {
 
 export const getLocalStorageKeypomEnv = (): boolean => {
 	const localStorageDataJson = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
+	console.log('localStorageDataJson: ', localStorageDataJson)
 	if (!localStorageDataJson) {
 		return false;
 	}
@@ -76,11 +77,12 @@ export const setLocalStorageKeypomEnv = () => {
 		secretKey,
 		keypomContractId,
 	});
+	console.log('dataToWrite: ', dataToWrite)
 
 	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`, dataToWrite);
 }
 
-export const claimTrialAccount = async (emitter) => {
+export const claimTrialAccount = async () => {
 	let isTrialClaimed = false;
 	try {
 		const dropInfo = await viewMethod({
@@ -93,6 +95,7 @@ export const claimTrialAccount = async (emitter) => {
 		console.log('dropInfo: ', dropInfo)
 	} catch(e: any) {
 		if (e.toString().includes("no drop ID for PK")) {
+			console.log(`trial is claimed (error: ${e})`);
 			isTrialClaimed = true;
 		} else {
 			console.log("error", e);
@@ -113,9 +116,6 @@ export const claimTrialAccount = async (emitter) => {
 	console.log('isTrialClaimed: ', isTrialClaimed)
 	accountId = newAccountId;
 	console.log('newAccountId: ', newAccountId)
-	
-	console.log("im emitting sign in")
-	emitter.emit("signedIn", {contractId: keypomContractId, methodNames: ["foo", "bar"], accounts: [accountId]});
 }
 
 export const parseUrl = (desiredUrl): boolean => {
@@ -212,6 +212,7 @@ export const signAndSendTransactions = async ({ transactions }: {transactions: A
 	}
 
 	const args = genArgs({ transactions })
+	console.log('args: ', args)
 
 	const transformedTransactions = await transformTransactions([{
 		receiverId: accountId,
