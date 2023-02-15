@@ -13,7 +13,7 @@ const App = ({ isSignedIn, guestBook, wallet }) => {
     guestBook.getMessages().then(setMessages);
   }, []);
 
-  onSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
 
     const { fieldset, message, donation } = e.target.elements;

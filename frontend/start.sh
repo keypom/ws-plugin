@@ -4,7 +4,7 @@ GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 
 CONTRACT_DIRECTORY=../contract
-DEV_ACCOUNT_FILE="${CONTRACT_DIRECTORY}/neardev/dev-account.env"
+DEV_ACCOUNT_FILE="./contract.env"
 
 start () {
   echo The app is starting!

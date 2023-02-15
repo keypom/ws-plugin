@@ -1,60 +1,6 @@
-import * as React from 'react';
-import { ModalOptions } from './modal';
-
-const css = `
-.modal {
-  position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.3s ease-in-out;
-  pointer-events: none;
-}
-
-.modal.enter-done {
-  opacity: 1;
-  pointer-events: visible;
-}
-
-.modal.exit {
-  opacity: 0;
-}
-
-.modal-content {
-  width: 500px;
-  background-color: #fff;
-  transition: all 0.3s ease-in-out;
-  transform: translateY(-200px);
-}
-
-.modal.enter-done .modal-content {
-  transform: translateY(0);
-}
-
-.modal.exit .modal-content {
-  transform: translateY(-200px);
-}
-
-.modal-header,
-.modal-footer {
-  padding: 10px;
-}
-
-.modal-title {
-  margin: 0;
-}
-
-.modal-body {
-  padding: 10px;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
-}`
+import React, { useCallback, useEffect, useState } from "react";
+import { MyForm } from "./Form";
+import { ModalOptions, Theme } from "./modal";
 
 interface ModalProps {
   options: ModalOptions;
@@ -63,32 +9,64 @@ interface ModalProps {
   onSubmit: (e) => void;
 }
 
+const getThemeClass = (theme?: Theme) => {
+  switch (theme) {
+    case "dark":
+      return "dark-theme";
+    case "light":
+      return "light-theme";
+    default:
+      return "";
+  }
+};
+
 export const KeypomModal: React.FC<ModalProps> = ({
   options,
   visible,
   hide,
   onSubmit
 }) => {
-  //const [enteredAccountId, setEnteredAccountId] = React.useState<string>();
+  const [userInputtedAccount, setUserInputtedAccount] = useState<string>();
 
-  const onChange = (e) => {
-    console.log('e: ', e)
-    //setEnteredAccountId(e.target.value)
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        hide();
+      }
+    };
+    window.addEventListener("keydown", close);
+
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+
+  if (!visible) {
+    return null;
   }
 
   return (
-      <div className="css.modal" onClick={hide}>
-        <div className="css.modal-content" onClick={e => e.stopPropagation()}>
-          <div className="css.modal-header">
-            <h4 className="css.modal-title">{options.title}</h4>
+    <div
+      className={`nws-modal-wrapper ${getThemeClass(options?.theme)} ${
+        visible ? "open" : ""
+      }`}
+    >
+      <div
+        className="nws-modal-overlay"
+        onClick={() => {
+          hide();
+        }}
+      />
+      <div className="nws-modal">
+        <div className="modal-left">
+          <div className="modal-left-title">
+            <h2>Left Title</h2>
           </div>
-          <div className="css.modal-body">{options.description}</div>
-          <div className="css.modal-footer">
-            <button onClick={onSubmit} className="button">
-              Submit
-            </button>
+        </div>
+        <div className="modal-right">
+          <div className="nws-modal-body">
+            <MyForm onSubmit={onSubmit} hide={hide}/>
           </div>
         </div>
       </div>
+    </div>
   );
-}
+};

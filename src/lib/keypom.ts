@@ -164,7 +164,7 @@ export function setupKeypom({
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 
 		console.log("IM AUTO SIGNING IN")
-		const envExists = getLocalStorageKeypomEnv();
+		const envExists = false//getLocalStorageKeypomEnv();
 		
 		const validUrl = parseUrl("/keypom-url/");
 	

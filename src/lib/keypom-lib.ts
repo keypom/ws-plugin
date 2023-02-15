@@ -84,6 +84,9 @@ export const setLocalStorageKeypomEnv = () => {
 }
 
 const onSubmitAccountId = async (accountId: string) => {
+	console.log("waiting 2 seconds");
+	// wait 2 seconds
+	await new Promise((resolve) => setTimeout(resolve, 2000));
 	console.log('accountId Submitted From Form: ', accountId)
 }
 
@@ -108,8 +111,8 @@ export const claimTrialAccount = async () => {
 	}
 
 	const modal = setupKeypomModal({
-		title: "this is my title",
-		description: "this is my description",
+		title: "this is my title (3)",
+		description: "this is my dasdasdasdescription",
 	}, onSubmitAccountId);
 	
 	modal.show();

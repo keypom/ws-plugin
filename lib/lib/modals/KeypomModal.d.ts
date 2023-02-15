@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { ModalOptions } from './modal';
+import React from "react";
+import { ModalOptions } from "./modal";
 interface ModalProps {
     options: ModalOptions;
     visible: boolean;
