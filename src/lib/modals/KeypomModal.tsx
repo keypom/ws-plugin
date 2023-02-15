@@ -1,13 +1,60 @@
 import * as React from 'react';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import { ModalOptions } from './modal';
 
+const css = `
+.modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+  pointer-events: none;
+}
+
+.modal.enter-done {
+  opacity: 1;
+  pointer-events: visible;
+}
+
+.modal.exit {
+  opacity: 0;
+}
+
+.modal-content {
+  width: 500px;
+  background-color: #fff;
+  transition: all 0.3s ease-in-out;
+  transform: translateY(-200px);
+}
+
+.modal.enter-done .modal-content {
+  transform: translateY(0);
+}
+
+.modal.exit .modal-content {
+  transform: translateY(-200px);
+}
+
+.modal-header,
+.modal-footer {
+  padding: 10px;
+}
+
+.modal-title {
+  margin: 0;
+}
+
+.modal-body {
+  padding: 10px;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}`
 
 interface ModalProps {
   options: ModalOptions;
@@ -27,31 +74,21 @@ export const KeypomModal: React.FC<ModalProps> = ({
   const onChange = (e) => {
     console.log('e: ', e)
     //setEnteredAccountId(e.target.value)
-  } 
+  }
 
   return (
-    <div>
-      <Dialog open={visible} onClose={() => {hide()}}>
-        <DialogTitle>{options.title}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-          {options.description}
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Account ID"
-            type="email"
-            fullWidth
-            variant="standard"
-            onChange={onChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {onSubmit("enteredAccountId")}}>Enter</Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+      <div className="css.modal" onClick={hide}>
+        <div className="css.modal-content" onClick={e => e.stopPropagation()}>
+          <div className="css.modal-header">
+            <h4 className="css.modal-title">{options.title}</h4>
+          </div>
+          <div className="css.modal-body">{options.description}</div>
+          <div className="css.modal-footer">
+            <button onClick={onSubmit} className="button">
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
   );
 }

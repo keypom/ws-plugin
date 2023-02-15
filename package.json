@@ -8,7 +8,8 @@
     "test": "yarn build && yarn ava test/test-v2.test.js -vs --timeout=5m",
     "test-contract": "yarn build-contract && yarn ava test/contract.test.js -vs --timeout=5m",
     "build": "npx tsc",
-		"build-contract": "cd contract && ./build.sh && cd .."
+		"build-contract": "cd contract && ./build.sh && cd ..",
+    "start-frontend": "yarn && yarn build && cd frontend && yarn && yarn start:headless"
   },
   "author": "mattlockyer",
   "license": "MIT",
@@ -19,9 +20,7 @@
     "keypom-js": "^1.3.4",
     "near-api-js": "^0.44.2",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "@emotion/styled": "^11.10.5",
-    "@mui/material": "^5.11.9"
+    "react-dom": "18.2.0"
   },
   "ava": {
     "require": [
