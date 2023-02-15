@@ -12,7 +12,7 @@ export interface SignInOptions {
 
 export declare type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
-interface SignAndSendTransactionsParams {
+export interface SignAndSendTransactionsParams {
     transactions: Array<Optional<Transaction, "signerId">>;
 }
 

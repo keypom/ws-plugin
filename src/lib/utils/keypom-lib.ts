@@ -1,7 +1,6 @@
 import * as nearAPI from "near-api-js";
 const {
 	Near,
-	Account,
 	KeyPair,
 	keyStores: { BrowserLocalStorageKeyStore },
 	transactions: { addKey, deleteKey, functionCallAccessKey },
@@ -16,8 +15,9 @@ const {
 import { genArgs } from "./keypom-v2-utils";
 
 import { BN } from "bn.js";
-import { AddKeyPermission, Action } from "@near-wallet-selector/core";
+import { AddKeyPermission, Action, FunctionCallAction } from "@near-wallet-selector/core";
 import { setupKeypomModal } from "../modals/modal";
+import { Account } from "near-api-js";
 
 const gas = '200000000000000'
 
@@ -38,45 +38,13 @@ export const networks = {
 
 export const KEYPOM_LOCAL_STORAGE_KEY = 'keypom-wallet-selector';
 
-export const getEnv = () => {
-	return {
-		networkId,
-		accountId,
-		account,
-		secretKey,
-		publicKey,
-		keyPair,
-		keypomContractId,
-	}
-}
-
-export const getLocalStorageKeypomEnv = (): boolean => {
+export const getLocalStorageKeypomEnv = () => {
 	const localStorageDataJson = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
-	console.log('localStorageDataJson: ', localStorageDataJson)
-	if (!localStorageDataJson) {
-		return false;
-	}
-
-	const localStorageData = JSON.parse(localStorageDataJson);
-
-	accountId = localStorageData.accountId;
-	networkId = localStorageData.networkId;
-	secretKey = localStorageData.secretKey;
-	keypomContractId = localStorageData.keypomContractId
-	keyPair = KeyPair.fromString(secretKey)
-	console.log('Setting keyPair in get: ', keyPair)
-	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
-
-	return true;
+	return JSON.parse(localStorageDataJson || '{}');
 }
 
-export const setLocalStorageKeypomEnv = () => {
-	const dataToWrite = JSON.stringify({
-		accountId,
-		networkId,
-		secretKey,
-		keypomContractId,
-	});
+export const setLocalStorageKeypomEnv = (jsonData) => {
+	const dataToWrite = JSON.stringify(jsonData);
 	console.log('dataToWrite: ', dataToWrite)
 
 	localStorage.setItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`, dataToWrite);
@@ -89,7 +57,7 @@ const onSubmitAccountId = async (accountId: string) => {
 	console.log('accountId Submitted From Form: ', accountId)
 }
 
-export const claimTrialAccount = async () => {
+export const claimTrialAccount = async (keypomContractId, keyPair, nodeUrl) => {
 	let isTrialClaimed = false;
 	try {
 		const dropInfo = await viewMethod({
@@ -97,7 +65,8 @@ export const claimTrialAccount = async () => {
 			methodName: 'get_drop_information', 
 			args: {
 				key: keyPair.publicKey.toString()
-			}
+			},
+			nodeUrl
 		});
 		console.log('dropInfo: ', dropInfo)
 	} catch(e: any) {
@@ -128,43 +97,11 @@ export const claimTrialAccount = async () => {
 	// }
 	
 	console.log('isTrialClaimed: ', isTrialClaimed)
-	accountId = newAccountId;
 	console.log('newAccountId: ', newAccountId)
+	return newAccountId;
 }
 
-export const parseUrl = (desiredUrl): boolean => {
-	/// TODO validation
-	desiredUrl = desiredUrl || '/keypom-trial/';
-	const split = window.location.href.split(desiredUrl);
-
-	if (split.length < 2) {
-		return false;
-	}
-	
-	const trialInfo = split[1];
-	const 	[trialKeypomContract, trialSecretKey] = trialInfo.split('#')
-	console.log('trialSecretKey: ', trialSecretKey)
-	console.log('trialKeypomContract: ', trialKeypomContract)
-
-	if (!trialKeypomContract || !trialSecretKey) {
-		return false;
-	}
-
-	keypomContractId = trialKeypomContract;
-	networkId = trialKeypomContract.split('keypom.testnet').length > 1 ? 'testnet' : 'mainnet';
-	secretKey = trialSecretKey
-	keyPair = KeyPair.fromString(trialSecretKey)
-	console.log('setting keyPair in parse: ', keyPair)
-	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
-	
-	console.log('secretKey: ', secretKey)
-
-	return true
-}
-
-export const autoSignIn = () => {
-	console.log('secretKey: ', secretKey)
-
+export const autoSignIn = (accountId, secretKey) => {
 	localStorage.setItem(`near-api-js:keystore:${accountId}:testnet`, `ed25519:${secretKey}`)
 	
 	// Contract
@@ -185,48 +122,6 @@ export const autoSignIn = () => {
 	// localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
 }
 
-export const getAccount = async () => ({ accountId });
-export const signIn = async () => {console.log("i am signing in lol"); return account};
-export const signOut = () => { 
-	
-};
-export const switchAccount = (id) => { 
-	logger.log("Keypom:switchAccount");
-	accountId = id;
-	console.log('switching accountId: ', accountId)
-	setLocalStorageKeypomEnv();
-};
-
-export const isSignedIn = () => { 
-	console.log('is signed in: accountId: ', accountId)
-	return accountId != undefined && accountId != null
-};
-
-export const signAndSendTransactions = async ({ transactions }: {transactions: Array<{receiverId?: string, actions: Action[]}>}) => {
-	if (!account) {
-		throw new Error("Wallet not signed in");
-	}
-
-	const args = genArgs({ transactions })
-	console.log('args: ', args)
-
-	const transformedTransactions = await transformTransactions([{
-		receiverId: accountId,
-		actions: [{
-			type: 'FunctionCall',
-			params: {
-				methodName: 'execute',
-				args,
-				gas: '100000000000000',
-			}
-		}]
-	}])
-
-	const promises = transformedTransactions.map((tx) => account.signAndSendTransaction(tx));
-	return await Promise.all(promises)
-	
-};
-
 export const isValidActions = (actions: Array<Action>): actions is Array<FunctionCallAction> => {
 	return actions.every((x) => x.type === "FunctionCall");
 };
@@ -241,33 +136,7 @@ export const transformActions = (actions: Array<Action>) => {
 	return actions.map((x) => x.params);
 };
 
-const transformTransactions = async (
-    transactions
-) => {
-    const { networkId, signer, provider } = account.connection;
-
-    return Promise.all(
-      transactions.map(async (transaction, index) => {
-        const actions = transaction.actions.map((action) =>
-          createAction(action)
-        );
-
-        const block = await provider.block({ finality: "final" });
-
-        return nearTransactions.createTransaction(
-          account.accountId,
-          publicKey,
-          transaction.receiverId,
-          publicKey.nonce + index + 1,
-          actions,
-          utils.serialize.base_decode(block.header.hash)
-        );
-      })
-    );
-  };
-
-
-const createAction = (action) => {
+export const createAction = (action) => {
 	switch (action.type) {
 	  case "CreateAccount":
 		return nearTransactions.createAccount();
@@ -321,11 +190,10 @@ const createAction = (action) => {
   };
 
 // Make a read-only call to retrieve information from the network
-export const viewMethod = async ({ contractId, methodName, args = {} }) => {
+export const viewMethod = async ({ contractId, methodName, args = {}, nodeUrl }) => {
 	console.log('args: ', args)
 	console.log('methodName: ', methodName)
 	console.log('contractId: ', contractId)
-	const nodeUrl = networks[networkId].nodeUrl;
 	console.log('nodeUrl: ', nodeUrl)
 	const provider = new nearAPI.providers.JsonRpcProvider({ url: nodeUrl });
 
