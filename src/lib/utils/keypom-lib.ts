@@ -17,11 +17,11 @@ import { genArgs } from "./keypom-v2-utils";
 
 import { BN } from "bn.js";
 import { AddKeyPermission, Action } from "@near-wallet-selector/core";
-import { setupKeypomModal } from "./modals/modal";
+import { setupKeypomModal } from "../modals/modal";
 
 const gas = '200000000000000'
 
-const networks = {
+export const networks = {
 	mainnet: {
 		networkId: 'mainnet',
 		nodeUrl: 'https://rpc.mainnet.near.org',
@@ -36,9 +36,7 @@ const networks = {
 	}
 }
 
-const KEYPOM_LOCAL_STORAGE_KEY = 'keypom-wallet-selector';
-
-let near, connection, logger, account, accountId, networkId, keyPair, secretKey, publicKey, keypomContractId;
+export const KEYPOM_LOCAL_STORAGE_KEY = 'keypom-wallet-selector';
 
 export const getEnv = () => {
 	return {
@@ -66,6 +64,7 @@ export const getLocalStorageKeypomEnv = (): boolean => {
 	secretKey = localStorageData.secretKey;
 	keypomContractId = localStorageData.keypomContractId
 	keyPair = KeyPair.fromString(secretKey)
+	console.log('Setting keyPair in get: ', keyPair)
 	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
 
 	return true;
@@ -155,13 +154,13 @@ export const parseUrl = (desiredUrl): boolean => {
 	networkId = trialKeypomContract.split('keypom.testnet').length > 1 ? 'testnet' : 'mainnet';
 	secretKey = trialSecretKey
 	keyPair = KeyPair.fromString(trialSecretKey)
+	console.log('setting keyPair in parse: ', keyPair)
 	publicKey = PublicKey.fromString(keyPair.publicKey.toString())
 	
 	console.log('secretKey: ', secretKey)
 
 	return true
 }
-
 
 export const autoSignIn = () => {
 	console.log('secretKey: ', secretKey)
@@ -182,32 +181,14 @@ export const autoSignIn = () => {
 	// if (recentWallets) {
 	// 	recentWallets.push(autoAccountId);
 	// }
-	localStorage.setItem('near-wallet-selector:recentlySignedInWallets', JSON.stringify(["keypom"]))
-	localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
+	// localStorage.setItem('near-wallet-selector:recentlySignedInWallets', JSON.stringify(["keypom"]))
+	// localStorage.setItem('near-wallet-selector:recentlySignedInWallets:pending', JSON.stringify(["keypom"]))
 }
-
-export const initConnection = (network, logFn) => {
-	networkId = network.networkId
-	network = networks[networkId]
-	logger = logFn
-	const keyStore = new BrowserLocalStorageKeyStore()
-
-	keyStore.setKey(networkId, accountId, keyPair)
-
-	near = new Near({
-		...network,
-		deps: { keyStore },
-	});
-
-	connection = near.connection;
-	account = new Account(connection, accountId)
-};
 
 export const getAccount = async () => ({ accountId });
 export const signIn = async () => {console.log("i am signing in lol"); return account};
 export const signOut = () => { 
-	near = connection = logger = account = accountId = networkId = keyPair = secretKey = publicKey, keypomContractId = undefined;
-	localStorage.removeItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
+	
 };
 export const switchAccount = (id) => { 
 	logger.log("Keypom:switchAccount");
@@ -244,6 +225,20 @@ export const signAndSendTransactions = async ({ transactions }: {transactions: A
 	const promises = transformedTransactions.map((tx) => account.signAndSendTransaction(tx));
 	return await Promise.all(promises)
 	
+};
+
+export const isValidActions = (actions: Array<Action>): actions is Array<FunctionCallAction> => {
+	return actions.every((x) => x.type === "FunctionCall");
+};
+
+export const transformActions = (actions: Array<Action>) => {
+	const validActions = isValidActions(actions);
+
+	if (!validActions) {
+		throw new Error(`Only 'FunctionCall' actions types are supported`);
+	}
+
+	return actions.map((x) => x.params);
 };
 
 const transformTransactions = async (
