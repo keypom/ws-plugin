@@ -1,2 +1,2 @@
-export type { KeypomParams } from "./lib/keypom";
-export { setupKeypom } from "./lib/keypom";
+export type { KeypomWallet } from "./lib/core/wallet";
+export { setupKeypom } from "./lib/core/setup";
