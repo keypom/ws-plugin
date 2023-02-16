@@ -25,11 +25,15 @@ const genArgs = (json) => {
 		const newTx = {}
 		newTx[RECEIVER_HEADER] = tx.contractId || tx.receiverId
 		newTx.actions = []
+		console.log('newTx: ', newTx)
 
 		tx.actions.forEach((action) => {
 			const newAction = {}
+			console.log('newAction 1: ', newAction)
 			newAction[ACTION_HEADER] = action.type
+			console.log('newAction 2: ', newAction)
 			newAction.params = wrapParams(action.params)
+			console.log('newAction 3: ', newAction)
 			newTx.actions.push(newAction)
 		})
 		newJson.transactions.push(newTx)

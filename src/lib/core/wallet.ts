@@ -53,25 +53,28 @@ export class KeypomWallet implements KeypomWalletProtocol {
         
         return Promise.all(
             txns.map(async (transaction, index) => {
-            const actions = transaction.actions.map((action) =>
+                const actions = transaction.actions.map((action) =>
                 createAction(action)
-            );
-    
-            const block = await provider.block({ finality: "final" });
+                );
+                
+                console.log('actions: ', actions)
+                const block = await provider.block({ finality: "final" });
+                console.log('block: ', block)
 
-            const accessKey: any = await provider.query(
-                `access_key/${account.accountId}/${this.publicKey!}`,
-                ""
-            );
-    
-            return transactions.createTransaction(
-                account.accountId,
-                this.publicKey!,
-                transaction.receiverId,
-                accessKey.nonce + index + 1,
-                actions,
-                base_decode(block.header.hash)
-            );
+                const accessKey: any = await provider.query(
+                    `access_key/${account.accountId}/${this.publicKey!}`,
+                    ""
+                );
+                console.log('accessKey: ', accessKey)
+        
+                return transactions.createTransaction(
+                    account.accountId,
+                    this.publicKey!,
+                    transaction.receiverId,
+                    accessKey.nonce + index + 1,
+                    actions,
+                    base_decode(block.header.hash)
+                );
             })
         );
     }
@@ -249,6 +252,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
   
     public async signAndSendTransaction(params) {
         this.assertSignedIn();
+        console.log('sign and send txn params: ', params)
         const { receiverId, actions } = params;
 
         let res;
@@ -270,6 +274,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
     }
   
     public async signAndSendTransactions(params) {
+        console.log('sign and send txns params: ', params)
         this.assertSignedIn();
         const { transactions } = params;
         
@@ -279,7 +284,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
         const account = await this.near.account(this.accountId!);
 
         const transformedTransactions = await this.transformTransactions([{
-            receiverId: account,
+            receiverId: account.accountId,
             actions: [{
                 type: 'FunctionCall',
                 params: {
@@ -289,6 +294,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
                 }
             }]
         }])
+        console.log('transformedTransactions: ', transformedTransactions)
 
         const promises = transformedTransactions.map((tx) => (account as any).signAndSendTransaction(tx));
         return await Promise.all(promises)as FinalExecutionOutcome[];
