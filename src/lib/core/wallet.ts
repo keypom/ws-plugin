@@ -178,12 +178,15 @@ export class KeypomWallet implements KeypomWalletProtocol {
         // URL is valid
         if (parsedData !== undefined) {
             const { trialAccountId, trialSecretKey } = parsedData;
-            const accountObj = new Account(this.connection, trialAccountId);
-            const keyPair = KeyPair.fromString(trialSecretKey);
-            const publicKey = keyPair.getPublicKey();
-            console.log('publicKey: ', publicKey.toString())
-
+            let keyPair;
+            let publicKey;
+            
             try {
+                const accountObj = new Account(this.connection, trialAccountId);
+                keyPair = KeyPair.fromString(trialSecretKey);
+                publicKey = keyPair.getPublicKey();
+                console.log('publicKey: ', publicKey.toString())
+
                 const accountKeys = await accountObj.getAccessKeys();
                 console.log('accountKeys: ', accountKeys)
                 
@@ -191,6 +194,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
                 isValidTrialInfo = accountKeys[0].public_key == publicKey.toString()
                 console.log('isValidTrialInfo: ', isValidTrialInfo)
             } catch(e) {
+                isValidTrialInfo = false;
                 console.log('e: ', e)
             }   
 
