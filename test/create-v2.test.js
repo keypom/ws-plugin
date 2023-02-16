@@ -1,9 +1,8 @@
 const test = require('ava')
 const { readFileSync } = require('fs')
-const keypomJS = require('keypom-js')
+const keypomJS = require('keypom-js');
+const { wrapParams } = require('../src/lib/utils/keypom-v2-utils');
 const { initKeypom, getEnv, generateKeys, claim, createDrop, parseNearAmount } = keypomJS;
-const keypomUtils = require('../src/lib/keypom-v2-utils')
-const { wrapParams } = keypomUtils;
 // custom linkdrop
 const DROP_ROOT = 'linkdrop-beta.keypom.testnet'
 // funder

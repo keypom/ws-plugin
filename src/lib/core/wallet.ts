@@ -19,7 +19,6 @@ export class KeypomWallet implements KeypomWalletProtocol {
 
     private accountId?: string;
     private secretKey?: string;
-    private keypomContractId?: string;
     
     private publicKey?: PublicKey;
     private keyPair?: KeyPair;
@@ -28,12 +27,12 @@ export class KeypomWallet implements KeypomWalletProtocol {
       networkId = "mainnet",
       desiredUrl = "/keypom-trial/"
     }) {
+        console.log('Keypom constructor called.');
         // Check that the desired URL starts and ends with `/`
         if (!desiredUrl.startsWith("/") && !desiredUrl.endsWith("/")) {
             throw new Error("desiredUrl must start and end with `/`");
         }
 
-        console.log('Keypom constructor called.');
         this.networkId = networkId
         const keyStore = new BrowserLocalStorageKeyStore()
         
@@ -43,6 +42,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
         });
         this.connection = this.near.connection
         this.desiredUrl = desiredUrl
+        console.log("finished constructor");
     }
 
     public transformTransactions = (txns) => {
@@ -76,38 +76,33 @@ export class KeypomWallet implements KeypomWalletProtocol {
         );
     }
 
-    public parseUrl = (): boolean => {
+    public parseUrl = () => {
         /// TODO validation
         const split = window.location.href.split(this.desiredUrl);
     
         if (split.length < 2) {
-            return false;
+            return;
         }
         
         const trialInfo = split[1];
-        const 	[trialKeypomContract, trialSecretKey] = trialInfo.split('#')
+        const 	[trialAccountId, trialSecretKey] = trialInfo.split('#')
+        console.log('trialAccountId: ', trialAccountId)
         console.log('trialSecretKey: ', trialSecretKey)
-        console.log('trialKeypomContract: ', trialKeypomContract)
     
-        if (!trialKeypomContract || !trialSecretKey) {
-            return false;
+        if (!trialAccountId || !trialSecretKey) {
+            return;
         }
-    
-        this.keypomContractId = trialKeypomContract;
-        this.secretKey = trialSecretKey
-        const keyPair = KeyPair.fromString(trialSecretKey);
-        this.keyPair = keyPair
-        console.log('Setting keyPair in parse URL: ', keyPair)
-        this.publicKey = keyPair.getPublicKey()
-    
-        return true
+
+        return {
+            trialAccountId,
+            trialSecretKey
+        }
     }
 
     public tryInitFromLocalStorage(data) {
         if (data?.accountId && data?.secretKey && data?.keypomContractId) {
             this.accountId = data.accountId;
             this.secretKey = data.secretKey;
-            this.keypomContractId = data.keypomContractId;
             const keyPair = KeyPair.fromString(data.secretKey);
             this.keyPair = keyPair
             console.log('Setting keyPair in try init: ', keyPair)
@@ -146,7 +141,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
             throw new Error("Wallet is already signed out");
         }
 
-        this.accountId = this.accountId = this.keyPair = this.secretKey = this.publicKey = this.keypomContractId = undefined;
+        this.accountId = this.accountId = this.keyPair = this.secretKey = this.publicKey = undefined;
         localStorage.removeItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
     }
 
@@ -174,27 +169,76 @@ export class KeypomWallet implements KeypomWalletProtocol {
     }
   
     public async signIn(): Promise<Account[]> {
-        console.log("IM AUTO SIGNING IN")
-        const returnedData = getLocalStorageKeypomEnv();
-        const envExists = this.tryInitFromLocalStorage(returnedData);
+        console.log("IM SIGNING IN")
+        // Keep track of whether or not the info coming from the URL is valid (account ID & secret key that exist)
+        let isValidTrialInfo = false;
+        const parsedData = this.parseUrl();
+        console.log('parsedData: ', parsedData)
         
-        const validUrl = this.parseUrl();
-    
-        console.log('validUrl: ', validUrl)
-        console.log('envExists: ', envExists)
-        if (validUrl && !envExists) {
-            const newAccountId = await claimTrialAccount(this.keypomContractId, this.keyPair!, networks[this.networkId].nodeUrl);
-            this.accountId = newAccountId;
+        // URL is valid
+        if (parsedData !== undefined) {
+            const { trialAccountId, trialSecretKey } = parsedData;
+            const accountObj = new Account(this.connection, trialAccountId);
+            const keyPair = KeyPair.fromString(trialSecretKey);
+            const publicKey = keyPair.getPublicKey();
+            console.log('publicKey: ', publicKey.toString())
 
-            autoSignIn(this.accountId!, this.secretKey!);
-            const dataToWrite = {
-                accountId: this.accountId,
-                secretKey: this.secretKey,
-                keypomContractId: this.keypomContractId,
-            }
-            setLocalStorageKeypomEnv(dataToWrite);
+            try {
+                const accountKeys = await accountObj.getAccessKeys();
+                console.log('accountKeys: ', accountKeys)
+                
+                // Check if accountKeys's length is 1 and it has a `public_key` field
+                isValidTrialInfo = accountKeys[0].public_key == publicKey.toString()
+                console.log('isValidTrialInfo: ', isValidTrialInfo)
+            } catch(e) {
+                console.log('e: ', e)
+            }   
+
+             // If the trial info is valid (i.e the account ID & secret key exist)
+             if (isValidTrialInfo) {
+                 this.accountId = trialAccountId;
+                 this.secretKey = trialSecretKey;
+                 this.keyPair = keyPair;
+                 this.publicKey = publicKey;
+                 
+                 const dataToWrite = {
+                    accountId: this.accountId,
+                    secretKey: this.secretKey
+                }
+                console.log('Trial info valid - setting data', dataToWrite)
+                setLocalStorageKeypomEnv(dataToWrite);
+             }
         }
 
+        // If anything went wrong (URL invalid or account doesn't exist or secret key doesn't belong)
+        // We can check current local storage data
+        if (!isValidTrialInfo) {
+            const curEnvData = getLocalStorageKeypomEnv();
+            console.log('trial info invalid. Cur env data: ', curEnvData)
+            
+            // If there is any
+            if (curEnvData != null) {
+                const { accountId, secretKey } = JSON.parse(curEnvData);
+                this.accountId = accountId;
+                this.secretKey = secretKey;
+                
+                const keyPair = KeyPair.fromString(secretKey);
+                const publicKey = keyPair.getPublicKey();
+                this.keyPair = keyPair;
+                this.publicKey = publicKey;
+                isValidTrialInfo = true;
+                console.log('Valid trial info from cur env data. Setting data')
+            }
+        }
+
+        if (!isValidTrialInfo) {
+            throw new Error("Invalid trial info");
+        }
+
+        console.log("auto signing in!");
+        // Auto sign in (mess with local storage)
+        autoSignIn(this.accountId, this.secretKey);
+ 
         const accountObj = new Account(this.connection, this.accountId!);
         return [accountObj];
     }

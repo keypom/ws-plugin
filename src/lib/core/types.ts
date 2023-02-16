@@ -3,6 +3,7 @@ import { Logger } from "@near-wallet-selector/core/lib/services";
 import BN from "bn.js";
 import { Account, Connection, KeyPair, Near } from "near-api-js";
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
+import { KeypomWallet } from "./wallet";
 
 export interface SignInOptions {
     contractId?: string;
@@ -40,8 +41,7 @@ export interface KeypomWalletProtocol {
 }
 
 export interface KeypomInitializeOptions {
-    networkId?: "mainnet" | "testnet";
-    desiredUrl?: string;
+    keypomWallet: KeypomWallet
 }
 
 export type SelectorInit = WalletBehaviourFactory<

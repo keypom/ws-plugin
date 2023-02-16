@@ -15,7 +15,7 @@ export declare const networks: {
     };
 };
 export declare const KEYPOM_LOCAL_STORAGE_KEY = "keypom-wallet-selector";
-export declare const getLocalStorageKeypomEnv: () => any;
+export declare const getLocalStorageKeypomEnv: () => string | null;
 export declare const setLocalStorageKeypomEnv: (jsonData: any) => void;
 export declare const claimTrialAccount: (keypomContractId: any, keyPair: any, nodeUrl: any) => Promise<string>;
 export declare const autoSignIn: (accountId: any, secretKey: any) => void;

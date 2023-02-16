@@ -2,6 +2,7 @@ import { Action, InjectedWallet, SignInParams, Transaction, VerifiedOwner, Verif
 import BN from "bn.js";
 import { Account } from "near-api-js";
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
+import { KeypomWallet } from "./wallet";
 export interface SignInOptions {
     contractId?: string;
     allowance?: string;
@@ -30,8 +31,7 @@ export interface KeypomWalletProtocol {
     getAvailableBalance: () => Promise<BN>;
 }
 export interface KeypomInitializeOptions {
-    networkId?: "mainnet" | "testnet";
-    desiredUrl?: string;
+    keypomWallet: KeypomWallet;
 }
 export type SelectorInit = WalletBehaviourFactory<KeypomWalletType, KeypomInitializeOptions>;
 export type KeypomWalletType = InjectedWallet & Omit<Omit<KeypomWalletProtocol, "getAccounts">, "signIn">;

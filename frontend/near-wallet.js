@@ -24,6 +24,7 @@ export class Wallet {
   wallet;
   network;
   createAccessKeyFor;
+  idx;
 
   constructor({ createAccessKeyFor = undefined, network = 'testnet' }) {
     // Login to a wallet passing a contractId will create a local
@@ -32,6 +33,7 @@ export class Wallet {
     // asked to sign all transactions.
     this.createAccessKeyFor = createAccessKeyFor
     this.network = network
+    this.idx = 0;
   }
 
   // To be called when the website loads
@@ -41,7 +43,7 @@ export class Wallet {
       modules: [
         setupMyNearWallet({ iconUrl: MyNearIconUrl }),
         //setupLedger({ iconUrl: LedgerIconUrl }),
-        setupKeypom({ desiredUrl: '/keypom-url/'})
+        setupKeypom({ desiredUrl: '/keypom-url/', networkId: this.network})
       ],
     });
 
@@ -84,12 +86,28 @@ export class Wallet {
 
   // Sign-in method
   async signIn() {
-    const wallet = await this.walletSelector.wallet('keypom');
-    console.log('wallet during sign in: ', wallet)
-    wallet.signIn();
-    // const description = 'Please select a wallet to sign in.';
-    // const modal = setupModal(this.walletSelector, { contractId: this.createAccessKeyFor, description });
-    // modal.show();
+    this.idx ++;
+
+    // if(this.idx <= 1) {
+    //   this.wallet = await this.walletSelector.wallet('keypom');
+    //   console.log('wallet during sign in: ', this.wallet)
+    //   await this.wallet.signIn({
+    //     contractId: "test-1676383642371.linkdrop-beta.keypom.testnet",
+    //     methodNames: []
+    //   });
+  
+    //   console.log('this.wallet: ', this.wallet)
+    //   const accountId = this.wallet.getAccountId();
+    //   console.log('accountId: ', accountId)
+    // } else {
+    //   console.log('idx too big');
+    //   console.log('this.walletSelector: ', this.walletSelector)
+    //   const isSignedIn = this.walletSelector.isSignedIn();
+    //    console.log('isSignedIn: ', isSignedIn)
+    // }
+    const description = 'Please select a wallet to sign in.';
+    const modal = setupModal(this.walletSelector, { contractId: this.createAccessKeyFor, description });
+    modal.show();
   }
 
   // Sign-out method

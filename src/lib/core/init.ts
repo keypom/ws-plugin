@@ -12,13 +12,8 @@ import { SelectorInit } from "./types";
 import { KeypomWallet } from "./wallet";
 
 export const initKeypomWallet: SelectorInit = async (config) => {
-	const { store, logger, emitter, options, desiredUrl } = config;
+	const { store, logger, emitter, options, keypomWallet } = config;
 	console.log("I AM INITTING KEYPOM?????");
-
-    const keypomWallet = new KeypomWallet({
-		networkId: options.network.networkId as NetworkId,
-		desiredUrl
-	})
 
 	// return the wallet interface for wallet-selector
 	return {

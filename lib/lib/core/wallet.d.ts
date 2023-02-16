@@ -9,7 +9,6 @@ export declare class KeypomWallet implements KeypomWalletProtocol {
     private readonly desiredUrl;
     private accountId?;
     private secretKey?;
-    private keypomContractId?;
     private publicKey?;
     private keyPair?;
     constructor({ networkId, desiredUrl }: {
@@ -17,7 +16,10 @@ export declare class KeypomWallet implements KeypomWalletProtocol {
         desiredUrl?: string | undefined;
     });
     transformTransactions: (txns: any) => Promise<any[]>;
-    parseUrl: () => boolean;
+    parseUrl: () => {
+        trialAccountId: string;
+        trialSecretKey: string;
+    } | undefined;
     tryInitFromLocalStorage(data: any): boolean;
     assertSignedIn(): void;
     isSignedIn(): Promise<boolean>;

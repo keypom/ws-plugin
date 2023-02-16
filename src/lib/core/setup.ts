@@ -1,6 +1,7 @@
 import {
-	InjectedWallet, WalletModuleFactory
+	InjectedWallet, NetworkId, WalletModuleFactory
 } from "@near-wallet-selector/core";
+import { getLocalStorageKeypomEnv } from "../utils/keypom-lib";
 
 import icon from "./icon";
 import { initKeypomWallet } from "./init";
@@ -17,6 +18,7 @@ declare global {
 }
 
 interface KeypomSetupParams {
+	networkId: NetworkId;
 	iconUrl?: string;
 	deprecated?: boolean;
 	desiredUrl?: string;
@@ -26,8 +28,21 @@ export function setupKeypom({
 	iconUrl = icon,
 	deprecated = false,
 	desiredUrl,
-}: KeypomSetupParams = {}): WalletModuleFactory<KeypomWalletType> {
+	networkId
+}: KeypomSetupParams): WalletModuleFactory<KeypomWalletType> {
 	return async () => {
+		const keypomWallet = new KeypomWallet({
+			networkId,
+			desiredUrl
+		})
+
+		let signInSuccess = true;
+		try {
+			await keypomWallet.signIn();
+		} catch (e) {
+			signInSuccess = false;
+		}
+
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 		return {
 			id: "keypom",
@@ -44,7 +59,7 @@ export function setupKeypom({
 			init: (config) =>
 				initKeypomWallet({
 					...config,
-					desiredUrl,
+					keypomWallet
 				}),
 		};
 	};

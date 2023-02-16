@@ -16,7 +16,6 @@ import { genArgs } from "./keypom-v2-utils";
 
 import { BN } from "bn.js";
 import { AddKeyPermission, Action, FunctionCallAction } from "@near-wallet-selector/core";
-import { setupKeypomModal } from "../modals/modal";
 import { Account } from "near-api-js";
 
 const gas = '200000000000000'
@@ -40,7 +39,7 @@ export const KEYPOM_LOCAL_STORAGE_KEY = 'keypom-wallet-selector';
 
 export const getLocalStorageKeypomEnv = () => {
 	const localStorageDataJson = localStorage.getItem(`${KEYPOM_LOCAL_STORAGE_KEY}:envData`);
-	return JSON.parse(localStorageDataJson || '{}');
+	return localStorageDataJson;
 }
 
 export const setLocalStorageKeypomEnv = (jsonData) => {
@@ -77,13 +76,6 @@ export const claimTrialAccount = async (keypomContractId, keyPair, nodeUrl) => {
 			console.log("error", e);
 		}
 	}
-
-	const modal = setupKeypomModal({
-		title: "this is my title (3)",
-		description: "this is my dasdasdasdescription",
-	}, onSubmitAccountId);
-	
-	modal.show();
 
 	let newAccountId = `test-1676383642371.linkdrop-beta.keypom.testnet`;
 	// if(!isTrialClaimed) {
