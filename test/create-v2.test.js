@@ -24,7 +24,7 @@ test('initKeypom', async (t) => {
 			accountId,
 			secretKey,
 		},
-		keypomContractId: "dev-1676251578683-64759206866175"
+		keypomContractId: "dev-1676742592813-14933979180879"
 	})
 
 	const { near } = getEnv();
@@ -39,17 +39,19 @@ test('createDrop for trial account and claim to create trial account', async (t)
 	const { publicKeys: newPublicKeys, secretKeys: newSecretKeys } = await generateKeys({ numKeys: 1 })
 	trialPublicKey = newPublicKeys[0]
 	trialSecretKey = newSecretKeys[0]
-	trialAccountId = `test-${Date.now()}.${DROP_ROOT}`
+	const newAccountId = "bens-dope-ass-demo5.linkdrop-beta.keypom.testnet"
 
 	console.log(`
 	
 	${JSON.stringify({
-		account_id: trialAccountId,
+		account_id: newAccountId,
 		public_key: trialPublicKey,
 		private_key: trialSecretKey
 	})}
 
 	`)
+
+	console.log(`http://localhost:1234/keypom-url/${newAccountId}#${trialSecretKey}`)
 
 	//@ts-ignore
 	const { keys: { secretKeys } } = await createDrop({
@@ -64,39 +66,55 @@ test('createDrop for trial account and claim to create trial account', async (t)
 				//@ts-ignore
 				attachedDeposit: TRIAL_ACCOUNT_FUNDING_AMOUNT,
 				args: JSON.stringify({
-					new_account_id: trialAccountId,
+					new_account_id: "INSERT_NEW_ACCOUNT",
 					options: {
 						contract_bytes: [...readFileSync('./out/main.wasm')],
 						limited_access_keys: [{
 							public_key: newPublicKeys[0],
 							//@ts-ignore
 							allowance: TRIAL_ACCOUNT_FUNDING_AMOUNT,
-							receiver_id: trialAccountId,
+							receiver_id: "INSERT_NEW_ACCOUNT",
 							method_names: 'execute',
 						}],
 					}
 				}),
+				userArgsRule: "UserPreferred"
 			},
 			{
-				receiverId: trialAccountId,
+				receiverId: "foobar",
 				methodName: 'setup',
 				//@ts-ignore
 				attachedDeposit: parseNearAmount('0'),
 				args: JSON.stringify(wrapParams({
-					contracts: [trialAccountId, 'dev-1676298343226-57701595703433'],
+					contracts: ["INSERT_NEW_ACCOUNT", 'dev-1676298343226-57701595703433'],
 					amounts: ['1', '0.01'],
 					methods: ['*', '*'],
 					funder: accountId,
 					repay: parseNearAmount('0.1'),
 				})),
+				userArgsRule: "UserPreferred",
+				receiverToClaimer: true
 			}
 			]],
 		}
 	})
 
+	let userFcArgs = {
+		"INSERT_NEW_ACCOUNT": newAccountId
+	}
+
+	let userFcArgs2 = JSON.stringify(wrapParams({
+		contracts: [newAccountId, 'dev-1676298343226-57701595703433'],
+		amounts: ['1', '0.01'],
+		methods: ['*', '*'],
+		funder: accountId,
+		repay: parseNearAmount('0.1'),
+	}))
+
 	const res = await claim({
-		accountId: 'blah',
+		accountId: newAccountId,
 		secretKey: secretKeys[0],
+		fcArgs: [JSON.stringify(userFcArgs), userFcArgs2]
 	})
 
 	t.true(true);
