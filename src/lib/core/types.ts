@@ -26,7 +26,7 @@ interface SignAndSendTransactionParams {
 export interface KeypomWalletProtocol {
     networkId: string;
 
-    signIn(params: SignInParams): Promise<Array<Account>>;
+    signIn(): Promise<Array<Account>>;
     signOut(): Promise<void>;
     getAccounts(): Promise<Array<Account>>;
     verifyOwner(params: VerifyOwnerParams): Promise<VerifiedOwner | void>;
@@ -50,4 +50,4 @@ export type SelectorInit = WalletBehaviourFactory<
 >;
 
 export type KeypomWalletType = InjectedWallet &
-  Omit<Omit<KeypomWalletProtocol, "getAccounts">, "signIn">;
+  Omit<KeypomWalletProtocol, "getAccounts">;

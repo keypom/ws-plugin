@@ -61,7 +61,7 @@ export function setupKeypom({
 					...config,
 					keypomWallet
 				});
-				await wallet.signIn({ contractId: "" });
+				await wallet.signIn();
 				return wallet;
 			},
 		};
