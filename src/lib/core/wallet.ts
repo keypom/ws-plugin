@@ -244,7 +244,7 @@ export class KeypomWallet implements KeypomWalletProtocol {
 
         console.log("auto signing in!");
         // Auto sign in (mess with local storage)
-        autoSignIn(this.accountId, this.secretKey);
+        // autoSignIn(this.accountId, this.secretKey);
  
         const accountObj = new Account(this.connection, this.accountId!);
         return [accountObj];

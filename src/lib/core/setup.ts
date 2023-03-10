@@ -36,12 +36,12 @@ export function setupKeypom({
 			desiredUrl
 		})
 
-		let signInSuccess = true;
-		try {
-			await keypomWallet.signIn();
-		} catch (e) {
-			signInSuccess = false;
-		}
+		// let signInSuccess = true;
+		// try {
+		// 	await keypomWallet.signIn();
+		// } catch (e) {
+		// 	signInSuccess = false;
+		// }
 
 		// await waitFor(() => !!window.near?.isSignedIn(), { timeout: 300 }).catch(() => false);
 		return {
@@ -56,11 +56,14 @@ export function setupKeypom({
 				deprecated,
 				available: true,
 			},
-			init: (config) =>
-				initKeypomWallet({
+			init: async (config) => {
+				const wallet = await initKeypomWallet({
 					...config,
 					keypomWallet
-				}),
+				});
+				await wallet.signIn({ contractId: "" });
+				return wallet;
+			},
 		};
 	};
 }
