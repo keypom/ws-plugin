@@ -14,21 +14,20 @@ pub(crate) fn get_u128(str: &str, key: &str) -> u128 {
     amount.parse().ok().unwrap_or_else(|| sys::panic())
 }
 
-/// helper to update the first json value matched in the string
-pub(crate) fn update_string(string: &str, key: &str, val: &str) -> String {
-    let mut ret: String = String::new();
-    let (left, right) = string.split_once(key).unwrap_or_else(|| sys::panic());
-    let (_, right) = right.split_once(PARAM_STOP).unwrap_or_else(|| sys::panic());
+// pub(crate) fn update_string(string: &str, key: &str, val: &str) -> String {
+//     let mut ret: String = String::new();
+//     let (left, right) = string.split_once(key).unwrap_or_else(|| sys::panic());
+//     let (_, right) = right.split_once(PARAM_STOP).unwrap_or_else(|| sys::panic());
     
-    ret.push_str(left);
-    ret.push_str(key);
-    ret.push_str("\",\"");
-    ret.push_str(val);
-    ret.push_str(PARAM_STOP);
-    ret.push_str(right);
+//     ret.push_str(left);
+//     ret.push_str(key);
+//     ret.push_str("\",\"");
+//     ret.push_str(val);
+//     ret.push_str(PARAM_STOP);
+//     ret.push_str(right);
 
-    ret
-}
+//     ret
+// }
 
 
 // const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";

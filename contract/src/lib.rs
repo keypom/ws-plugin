@@ -3,6 +3,7 @@
 
 /// storage keys used by this contract because it uses raw storage key value writes and reads
 const RULES_KEY: &[u8] = b"r";
+const FLOOR_KEY: &[u8] = b"f";
 /// register constants used
 const REGISTER_0: u64 = 0;
 /// string literals (improve readability)
@@ -23,10 +24,11 @@ extern crate alloc;
 /// DEBUGGING REMOVE
 // use alloc::format;
 
+use core::convert::TryInto;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::format;
-use alloc::string::String;
 use alloc::string::ToString;
 
 mod sys;
@@ -57,8 +59,11 @@ pub fn setup() {
     unsafe { near_sys::input(REGISTER_0) };
     let data = register_read(REGISTER_0);
 	// remove quotes from string with slice, strip slashes, and write it
-	let data_str = alloc::str::from_utf8(&data[1..data.len()-1]).ok().unwrap_or_else(|| sys::panic());
-    swrite(RULES_KEY, data_str.replace("\\\"", "\"").as_bytes());
+	let data_str = alloc::str::from_utf8(&data[1..data.len()-1]).ok().unwrap_or_else(|| sys::panic()).replace("\\\"", "\"");
+    swrite(RULES_KEY, data_str.as_bytes());
+	
+	let floor = get_u128(&data_str, "|kP|floor");
+    swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
 
 #[no_mangle]
@@ -69,16 +74,16 @@ pub fn execute() {
 
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
 	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
-	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
-		.split(",")
-		.map(|a| {
-			let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
-			amount
-		})
-		.collect();
-	let repay: &str = get_string(rules_str, "|kP|repay");
-	let funder: &str = get_string(rules_str, "|kP|funder");
-	let floor: &str = get_string(rules_str, "|kP|floor");
+	// let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
+	// 	.split(",")
+	// 	.map(|a| {
+	// 		let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
+	// 		amount
+	// 	})
+	// 	.collect();
+	// let repay: &str = get_string(rules_str, "|kP|repay");
+	// let funder: &str = get_string(rules_str, "|kP|funder");
+	// let floor: &str = get_string(rules_str, "|kP|floor");
 
 	// args
     unsafe { near_sys::input(REGISTER_0) };
@@ -204,9 +209,7 @@ pub fn execute() {
 						promises.push(cb_id);
 
 
-						let args = deposit.to_string();
-						// let args_str = alloc::str::from_utf8(&args).ok().unwrap_or_else(|| sys::panic());
-
+						let args = format!("{}", deposit);
 						let callback_deposit: u64 = 0;
 						near_sys::promise_batch_action_function_call(
 							cb_id,
@@ -240,22 +243,15 @@ pub unsafe fn callback() {
 	let amount_str = alloc::str::from_utf8(&amount_bytes).ok().unwrap_or_else(|| sys::panic());
 	let amount: u128 = amount_str.parse().ok().unwrap_or_else(|| sys::panic());
 
-	// rules
-	let rules_data = storage_read(RULES_KEY);
-	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
-
-	let mut floor: u128 = get_u128(rules_str, "|kP|floor");
+	// update floor
+	let floor_bytes = storage_read(FLOOR_KEY);
+	let mut floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
 	floor = floor - amount;
-
-	// let new_rules = update_string_2();
-	let new_rules = update_string(rules_str, "|kP|floor", &format!("{}", floor));
-    swrite(RULES_KEY, new_rules.as_bytes());
-
-	log(&new_rules);
+    swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
 
 #[no_mangle]
-pub fn exit() {
+pub fn create_account_and_claim() {
 	// rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
@@ -275,4 +271,11 @@ pub fn exit() {
 #[no_mangle]
 pub(crate) unsafe fn get_rules() {
     return_bytes(&storage_read(RULES_KEY), true);
+}
+
+#[no_mangle]
+pub(crate) unsafe fn get_floor() {
+	let floor_bytes = storage_read(FLOOR_KEY);
+	let floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
+    return_bytes(floor.to_string().as_bytes(), false);
 }

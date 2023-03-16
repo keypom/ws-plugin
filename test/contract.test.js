@@ -146,15 +146,32 @@ test('implicit account setup', async (t) => {
 	t.true(true);
 });
 
-test('exit', async (t) => {
-	await account.functionCall({
-		contractId: accountId,
-		methodName: 'exit',
-		args: {},
-	});
+
+
+/** 
+ * testing view method of contract
+ */
+test('get_rules', async (t) => {
+	const res = await account.viewFunction(
+		accountId,
+		'get_rules'
+	);
+	console.log('get_rules', res);
 
 	t.true(true);
 });
+
+
+
+// test('exit', async (t) => {
+// 	await account.functionCall({
+// 		contractId: accountId,
+// 		methodName: 'exit',
+// 		args: {},
+// 	});
+
+// 	t.true(true);
+// });
 
 /** 
  * testing execute basic tx
@@ -232,16 +249,15 @@ test('exit', async (t) => {
 });
 
 
-
 /** 
  * testing view method of contract
  */
-test('get_rules', async (t) => {
+test('get_floor', async (t) => {
 	const res = await account.viewFunction(
 		accountId,
-		'get_rules'
+		'get_floor'
 	);
-	console.log('get_rules', res);
+	console.log('get_floor', res);
 
 	t.true(true);
 });
