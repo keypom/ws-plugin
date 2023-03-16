@@ -8,6 +8,26 @@ pub fn log(message: &str) {
     }
 }
 
+pub(crate) fn create_promise_batch(account_id: String, prev_id: Option<u64>) -> u64 {
+    // then make another promise back receiver == current_account_id
+    if let Some(prev_id) = prev_id {
+        unsafe {
+                near_sys::promise_batch_then(
+                prev_id,
+                account_id.len() as u64,
+                account_id.as_ptr() as u64,
+            )
+        }
+    } else {
+        unsafe {
+            near_sys::promise_batch_create(
+                account_id.len() as u64,
+                account_id.as_ptr() as u64,
+            )
+        }
+    }
+}
+
 pub(crate) unsafe fn return_bytes_format(bytes: &[u8], json: bool) -> Vec<u8> {
     let mut ret_data = vec![DOUBLE_QUOTE_BYTE];
     if json == true {
@@ -43,6 +63,22 @@ pub(crate) fn swrite(key: &[u8], val: &[u8]) {
     }
 }
 
+pub(crate) fn storage_read_str(key: &[u8]) -> String {
+    let data = storage_read(key);
+	let data_str = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic());
+    data_str.to_string()
+}
+
+pub(crate) fn storage_remove(key: &[u8]) {
+    unsafe {
+        near_sys::storage_remove(
+            key.len() as u64,
+            key.as_ptr() as u64,
+            REGISTER_0
+        );
+    }
+}
+
 pub(crate) fn storage_read(key: &[u8]) -> Vec<u8> {
     let key_exists =
         unsafe { near_sys::storage_read(key.len() as u64, key.as_ptr() as u64, REGISTER_0) };
@@ -57,6 +93,13 @@ pub(crate) fn account_balance() -> u128 {
     let buffer = [0u8; 16];
     unsafe { near_sys::account_balance(buffer.as_ptr() as u64) };
     u128::from_le_bytes(buffer)
+}
+
+pub(crate) fn current_account_id() -> String {
+    // get current account to setup for callback
+    unsafe { near_sys::current_account_id(REGISTER_0) };
+    let current_account_id_bytes = register_read(REGISTER_0);
+    alloc::str::from_utf8(&current_account_id_bytes).ok().unwrap_or_else(|| sys::panic()).to_string()
 }
 
 pub(crate) fn register_read(id: u64) -> Vec<u8> {

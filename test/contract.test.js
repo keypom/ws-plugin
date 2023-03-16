@@ -45,7 +45,7 @@ keyStore.setKey(
 );
 const fundingAccount = new Account(connection, fundingAccountId)
 
-const DELETE_EXISTING = false;
+const DELETE_EXISTING = true;
 const REDEPLOY = true;
 /// some vars re-used in the tests
 let accountId = 'ws-plugin.testnet', account;
@@ -63,7 +63,7 @@ const PARAM_STOP = '|kS|'
 const wrapParams = (params, newParams = {}) => {
 	Object.entries(params).forEach(([k, v]) => {
 		if (Array.isArray(v)) v = v.join()
-		newParams[PARAM_START+k] = v + PARAM_STOP
+		newParams[PARAM_START + k] = v + PARAM_STOP
 	})
 	return newParams
 }
@@ -92,7 +92,7 @@ const genArgs = (json) => {
  * this test just sets up the NEAR account
  */
 test('implicit account setup', async (t) => {
-	
+
 	const contractBytes = fs.readFileSync('./out/main.wasm');
 	account = new Account(connection, accountId)
 
@@ -117,18 +117,18 @@ test('implicit account setup', async (t) => {
 			attachedDeposit: parseNearAmount('1'),
 			gas,
 		})
-	
+
 		const actions = [
 			deployContract(contractBytes),
 			functionCall(
 				'setup',
 				JSON.stringify(wrapParams({
-					contracts: [fundingAccountId, 'testnet', 'beta.keypom.testnet'],
-					amounts: ['1', parseNearAmount('1'), parseNearAmount('0.1')],
-					methods: ['*', 'claim:create_account:create_account_and_claim', 'create_drop:delete_keys'],
+					contracts: ['testnet', 'beta.keypom.testnet'],
+					amounts: [parseNearAmount('1'), parseNearAmount('0.1')],
+					methods: ['claim:create_account:create_account_and_claim', 'create_drop:delete_keys'],
 					funder: fundingAccountId,
-					repay: parseNearAmount('1'),
-					floor: parseNearAmount('1'),
+					repay: parseNearAmount('0.5'),
+					floor: parseNearAmount('0.92'),
 				})),
 				gas,
 			),
@@ -161,17 +161,21 @@ test('get_rules', async (t) => {
 	t.true(true);
 });
 
+test('exit before execute (fails due to floor)', async (t) => {
 
+	const keys = await account.getAccessKeys();
 
-// test('exit', async (t) => {
-// 	await account.functionCall({
-// 		contractId: accountId,
-// 		methodName: 'exit',
-// 		args: {},
-// 	});
+	await account.functionCall({
+		contractId: accountId,
+		methodName: 'create_account_and_claim',
+		args: {
+			new_account_id: accountId,
+			new_public_key: keys[0].public_key,
+		}
+	});
 
-// 	t.true(true);
-// });
+	t.true(true);
+});
 
 /** 
  * testing execute basic tx
@@ -195,51 +199,53 @@ test('get_rules', async (t) => {
 	}]
 }
  */
- test('execute', async (t) => {
+test('execute', async (t) => {
 	const res = await fundingAccount.functionCall({
 		contractId: accountId,
 		methodName: 'execute',
 		args: genArgs({
-			transactions: [{
-				contractId: fundingAccountId,
-				actions: [
-					{
-						type: 'Transfer',
-						params: {
-							deposit: '1'
+			transactions: [
+				// {
+				// 	contractId: fundingAccountId,
+				// 	actions: [
+				// 		{
+				// 			type: 'Transfer',
+				// 			params: {
+				// 				deposit: '1'
+				// 			}
+				// 		},
+				// 		{
+				// 			type: 'Transfer',
+				// 			params: {
+				// 				deposit: '1'
+				// 			}
+				// 		}
+				// 	],
+				// },
+				{
+					contractId: 'testnet',
+					actions: [
+						// {
+						// 	type: 'Transfer',
+						// 	params: {
+						// 		deposit: '1'
+						// 	}
+						// },
+						{
+							type: 'FunctionCall',
+							params: {
+								methodName: 'create_account',
+								args: JSON.stringify({
+									new_account_id: 'mnbv-' + Date.now().toString().padEnd(64 - 26, '0') + '.testnet',
+									new_public_key: publicKey.toString(),
+								}),
+								deposit: parseNearAmount('0.02'),
+								gas: '30000000000000',
+							}
 						}
-					},
-					{
-						type: 'Transfer',
-						params: {
-							deposit: '1'
-						}
-					}
-				],
-			},
-			{
-				contractId: 'testnet',
-				actions: [
-					{
-						type: 'Transfer',
-						params: {
-							deposit: '1'
-						}
-					},
-					{
-						type: 'FunctionCall',
-						params: {
-							methodName: 'create_account',
-							args: JSON.stringify({
-								new_account_id: 'mnbv-' + Date.now().toString().padEnd(64-26, '0') + '.testnet',
-								new_public_key: publicKey.toString(),
-							}),
-							deposit: parseNearAmount('0.02'),
-							gas: '30000000000000',
-						}
-					}
-				],
-			}]
+					],
+				}
+			]
 		}),
 		gas: new BN('80000000000000'),
 	})
@@ -258,6 +264,22 @@ test('get_floor', async (t) => {
 		'get_floor'
 	);
 	console.log('get_floor', res);
+
+	t.true(true);
+});
+
+test('exit after execute', async (t) => {
+
+	const keys = await account.getAccessKeys();
+
+	await account.functionCall({
+		contractId: accountId,
+		methodName: 'create_account_and_claim',
+		args: {
+			new_account_id: accountId,
+			new_public_key: keys[0].public_key,
+		}
+	});
 
 	t.true(true);
 });
