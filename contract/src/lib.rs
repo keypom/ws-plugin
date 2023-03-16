@@ -12,9 +12,11 @@ const ACTION_HEADER: &str = "\"|kA|\":";
 const PARAM_STOP: &str = "|kS|\"";
 const COMMA: &str = ",";
 const ANY_METHOD: &str = "*";
+const CALLBACK_GAS: u64 = 20_000_000_000_000;
 
 /// repeated string literals (in parsing tx payloads)
 const DEPOSIT: &str = "|kP|deposit";
+const CALLBACK_METHOD_NAME: &str = "callback";
 
 extern crate alloc;
 
@@ -24,7 +26,8 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::format;
-// use alloc::string::ToString;
+use alloc::string::String;
+use alloc::string::ToString;
 
 mod sys;
 use sys::*;
@@ -60,27 +63,27 @@ pub fn setup() {
 
 #[no_mangle]
 pub fn execute() {
-
 	// rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
 
-	log(rules_str);
-
 	let contracts: Vec<&str> = get_string(rules_str, "|kP|contracts").split(",").collect();
 	let methods: Vec<Vec<&str>> = get_string(rules_str, "|kP|methods").split(",").map(|s| s.split(":").collect()).collect();
-	// let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
-	// 	.split(",")
-	// 	.map(|a| {
-	// 		let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
-	// 		amount
-	// 	})
-	// 	.collect();
+	let amounts: Vec<u128> = get_string(rules_str, "|kP|amounts")
+		.split(",")
+		.map(|a| {
+			let amount: u128 = a.parse().ok().unwrap_or_else(|| sys::panic());
+			amount
+		})
+		.collect();
+	let repay: &str = get_string(rules_str, "|kP|repay");
+	let funder: &str = get_string(rules_str, "|kP|funder");
+	let floor: &str = get_string(rules_str, "|kP|floor");
 
 	// args
     unsafe { near_sys::input(REGISTER_0) };
     let data = register_read(REGISTER_0);
-	let msg = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic());
+	let msg = alloc::str::from_utf8(&data).ok().unwrap_or_else(|| sys::panic()).replace("\\\"", "\"");
 	log(&msg);
 
 	// transactions
@@ -142,9 +145,6 @@ pub fn execute() {
 				b"FunctionCall" => {
 					let method_name = get_string(params, "|kP|methodName");
 
-					log(method_name);
-					log(&methods[receiver_index].join(":"));
-
 					if methods[receiver_index][0] != ANY_METHOD && !methods[receiver_index].contains(&method_name) {
 						sys::panic()
 					}
@@ -164,12 +164,94 @@ pub fn execute() {
 							deposit.to_le_bytes().as_ptr() as u64,
 							gas,
 						);
+
+
+
+						// near_sys::current_account_id(REGISTER_0);
+						// let current_account_id_bytes = register_read(REGISTER_0);
+						// let current_account_id = alloc::str::from_utf8(&current_account_id_bytes).ok().unwrap_or_else(|| sys::panic());
+						
+						// let cb_id = near_sys::promise_batch_then(
+						// 	id,
+						// 	current_account_id.len() as u64,
+						// 	current_account_id.as_ptr() as u64,
+						// );
+						// promises.push(cb_id);
+						// let args = "";
+						// let deposit: u64 = 0;
+						// near_sys::promise_batch_action_function_call(
+						// 	cb_id,
+						// 	CALLBACK_METHOD_NAME.len() as u64,
+						// 	CALLBACK_METHOD_NAME.as_ptr() as u64,
+						// 	args.len() as u64,
+						// 	args.as_ptr() as u64,
+						// 	deposit.to_le_bytes().as_ptr() as u64,
+						// 	CALLBACK_GAS,
+						// );
+
+
+
+						near_sys::current_account_id(REGISTER_0);
+						let current_account_id_bytes = register_read(REGISTER_0);
+						let current_account_id = alloc::str::from_utf8(&current_account_id_bytes).ok().unwrap_or_else(|| sys::panic());
+						
+						// then make another promise back receiver == current_account_id
+						let cb_id = near_sys::promise_batch_then(
+							id,
+							current_account_id.len() as u64,
+							current_account_id.as_ptr() as u64,
+						);
+						promises.push(cb_id);
+
+
+						let args = deposit.to_string();
+						// let args_str = alloc::str::from_utf8(&args).ok().unwrap_or_else(|| sys::panic());
+
+						let callback_deposit: u64 = 0;
+						near_sys::promise_batch_action_function_call(
+							cb_id,
+							CALLBACK_METHOD_NAME.len() as u64,
+							CALLBACK_METHOD_NAME.as_ptr() as u64,
+							args.len() as u64,
+							args.as_ptr() as u64,
+							callback_deposit.to_le_bytes().as_ptr() as u64,
+							CALLBACK_GAS,
+						);
 					};
 				}
 				_ => {}
 			}
 		}
 	}
+}
+
+#[no_mangle]
+pub unsafe fn callback() {
+	log(CALLBACK_METHOD_NAME);
+
+	near_sys::promise_result(0, REGISTER_0);
+	let result_bytes = register_read(REGISTER_0);
+	let result = alloc::str::from_utf8(&result_bytes).ok().unwrap_or_else(|| sys::panic());
+	log(result);
+
+	// parse the attachedDeposit from the call
+	near_sys::input(REGISTER_0);
+	let amount_bytes = register_read(REGISTER_0);
+	let amount_str = alloc::str::from_utf8(&amount_bytes).ok().unwrap_or_else(|| sys::panic());
+	let amount: u128 = amount_str.parse().ok().unwrap_or_else(|| sys::panic());
+
+	// rules
+	let rules_data = storage_read(RULES_KEY);
+	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
+
+	let mut floor: u128 = get_u128(rules_str, "|kP|floor");
+	floor = floor - amount;
+
+	// let new_rules = update_string_2();
+	let new_rules = update_string(rules_str, "|kP|floor", &format!("{}", floor));
+    swrite(RULES_KEY, new_rules.as_bytes());
+
+	log(&new_rules);
 }
 
 #[no_mangle]

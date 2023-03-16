@@ -1,5 +1,6 @@
 const fs = require('fs');
 const test = require('ava');
+const BN = require('bn.js');
 const { parseSeedPhrase } = require('near-seed-phrase');
 const nearAPI = require('near-api-js');
 require('dotenv').config()
@@ -33,7 +34,8 @@ const {
 	NEW_ACCOUNT_AMOUNT,
 } = getConfig();
 
-const { publicKey, secretKey } = parseSeedPhrase(process.env.REACT_APP_FUNDING_SEED_PHRASE)
+// const { public_key: publicKey, private_key: secretKey } = JSON.parse(fs.readFileSync('./credentials.json'))
+const { publicKey, secretKey } = parseSeedPhrase(`damage miracle sick friend box among phone hand patch blossom anger salad`)
 const fundingAccountId = PublicKey.from(publicKey).data.toString('hex')
 console.log(fundingAccountId)
 keyStore.setKey(
@@ -46,7 +48,7 @@ const fundingAccount = new Account(connection, fundingAccountId)
 const DELETE_EXISTING = false;
 const REDEPLOY = true;
 /// some vars re-used in the tests
-let accountId = 'jaweaoiwjfoawiejfoawjef.testnet', account;
+let accountId = 'ws-plugin.testnet', account;
 keyStore.setKey(
 	networkId,
 	accountId,
@@ -124,8 +126,9 @@ test('implicit account setup', async (t) => {
 					contracts: [fundingAccountId, 'testnet', 'beta.keypom.testnet'],
 					amounts: ['1', parseNearAmount('1'), parseNearAmount('0.1')],
 					methods: ['*', 'claim:create_account:create_account_and_claim', 'create_drop:delete_keys'],
-					funder: 'md1.testnet',
+					funder: fundingAccountId,
 					repay: parseNearAmount('1'),
+					floor: parseNearAmount('1'),
 				})),
 				gas,
 			),
@@ -139,19 +142,6 @@ test('implicit account setup', async (t) => {
 		];
 		await account.signAndSendTransaction({ receiverId: accountId, actions });
 	}
-
-	t.true(true);
-});
-
-/** 
- * testing view method of contract
- */
-test('get_rules', async (t) => {
-	const res = await account.viewFunction(
-		accountId,
-		'get_rules'
-	);
-	console.log('get_rules', res);
 
 	t.true(true);
 });
@@ -224,7 +214,7 @@ test('exit', async (t) => {
 						params: {
 							methodName: 'create_account',
 							args: JSON.stringify({
-								new_account_id: 'mnbv-' + Date.now() + '.testnet',
+								new_account_id: 'mnbv-' + Date.now().toString().padEnd(64-26, '0') + '.testnet',
 								new_public_key: publicKey.toString(),
 							}),
 							deposit: parseNearAmount('0.02'),
@@ -234,9 +224,24 @@ test('exit', async (t) => {
 				],
 			}]
 		}),
-		gas,
+		gas: new BN('80000000000000'),
 	})
 	// console.log('execute', res);
+
+	t.true(true);
+});
+
+
+
+/** 
+ * testing view method of contract
+ */
+test('get_rules', async (t) => {
+	const res = await account.viewFunction(
+		accountId,
+		'get_rules'
+	);
+	console.log('get_rules', res);
 
 	t.true(true);
 });

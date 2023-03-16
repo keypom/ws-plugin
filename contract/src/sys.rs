@@ -8,7 +8,7 @@ pub fn log(message: &str) {
     }
 }
 
-pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
+pub(crate) unsafe fn return_bytes_format(bytes: &[u8], json: bool) -> Vec<u8> {
     let mut ret_data = vec![DOUBLE_QUOTE_BYTE];
     if json == true {
         let bytes_str = alloc::str::from_utf8(&bytes).ok().unwrap_or_else(|| sys::panic());
@@ -22,6 +22,11 @@ pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
         ret_data.extend_from_slice(bytes);
     }
     ret_data.push(DOUBLE_QUOTE_BYTE);
+    ret_data
+}
+
+pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
+    let ret_data = return_bytes_format(bytes, json);
     near_sys::value_return(ret_data.len() as u64, ret_data.as_ptr() as u64);
 }
 
