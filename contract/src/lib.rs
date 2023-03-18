@@ -273,6 +273,11 @@ pub fn create_account_and_claim() {
 			0,
 			"".as_ptr() as u64,
 		);
+		near_sys::promise_batch_action_delete_key(
+			exit_id,
+			public_key.len() as u64,
+			public_key.as_ptr() as u64,
+		);
 		near_sys::promise_batch_action_add_key_with_full_access(
 			exit_id,
 			public_key.len() as u64,
