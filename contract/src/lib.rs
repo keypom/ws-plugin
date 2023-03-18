@@ -25,13 +25,13 @@ extern crate alloc;
 /// DEBUGGING REMOVE
 // use alloc::format;
 
-use core::convert::TryInto;
 
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
+use core::convert::TryInto;
 
 mod sys;
 use sys::*;
@@ -58,8 +58,8 @@ pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
 
 #[no_mangle]
 pub fn setup() {
-    let input_str = get_input(true, true);
-	swrite(RULES_KEY, input_str.as_bytes());
+    let input_str = get_input(true);
+	swrite(RULES_KEY, input_str[1..input_str.len()-1].as_bytes());
 	let floor = account_balance();
     swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
@@ -80,7 +80,7 @@ pub fn execute() {
 		.collect();
 
 	// args
-	let input_str = get_input(true, true);
+	let input_str = get_input(true);
     
 	// transactions
 	let mut transactions: Vec<&str> = input_str.split(RECEIVER_HEADER).collect();
@@ -194,7 +194,7 @@ pub unsafe fn callback() {
 	}
 
 	// parse the attachedDeposit from the call
-    let input_str = get_input(false, false);
+    let input_str = get_input(false);
 	let (attached_deposit_str, prepaid_gas_str) = split_once(&input_str, ",");
 	let attached_deposit: u128 = attached_deposit_str.parse().ok().unwrap_or_else(|| sys::panic());
 	let prepaid_gas: u128 = prepaid_gas_str.parse().ok().unwrap_or_else(|| sys::panic());
@@ -207,21 +207,7 @@ pub unsafe fn callback() {
     swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
 
-#[no_mangle]
-pub fn create_account_and_claim() {
-
-	// allow funder to hard exit trial at any time, delete storage FIRST delete account and reclaim NEAR
-
-	// parse the input and get the public key
-    let input_str = get_input(true, true);	
-	let (_, public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
-	let (_, mut public_key_str) = split_once(public_key_str, "ed25519:");
-	public_key_str = &public_key_str[..public_key_str.len() - 2];
-	let public_key = string_to_base58(public_key_str);
-	// log(&format!("public_key_str: {}", public_key_str));
-	// log(&format!("public_key: {:?}", public_key));
-	// log(&format!("public_key_len: {}", public_key.len()));
-
+fn can_exit() -> Option<(u128, String)> {
 	// rules
 	let rules_data = storage_read(RULES_KEY);
 	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
@@ -232,17 +218,41 @@ pub fn create_account_and_claim() {
 	// log(&format!("repay: {}", repay));
 	// log(&format!("floor_exit: {}", floor_exit));
 	// log(&format!("account_balance: {}", account_balance));
+	// repay
 	if account_balance < repay {
-		return log("cannot repay");
+		log("cannot repay");
+		return None;
 	}
-
+	// floor
 	let floor_bytes = storage_read(FLOOR_KEY);
 	let floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
 	// log(&format!("floor: {}", floor));
-	
 	if floor > floor_exit {
-		return log("floor > floor_exit");
+		log("floor > floor_exit");
+		return None;
 	}
+
+	Some((repay, funder))
+}
+
+#[no_mangle]
+pub fn create_account_and_claim() {
+
+	// parse the input and get the public key
+    let input_str = get_input(true);	
+	let (_, public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
+	let (_, mut public_key_str) = split_once(public_key_str, "ed25519:");
+	public_key_str = &public_key_str[..public_key_str.len() - 2];
+	let public_key = string_to_base58(public_key_str);
+	// log(&format!("public_key_str: {}", public_key_str));
+	// log(&format!("public_key: {:?}", public_key));
+	// log(&format!("public_key_len: {}", public_key.len()));
+
+	// allow funder to hard exit trial at any time, delete storage FIRST delete account and reclaim NEAR
+
+	let exit_option = can_exit();
+	let (repay, funder) = exit_option.unwrap_or_else(|| sys::panic());
+
 	// promise for add key
 	let refund_id = create_promise_batch(funder, None);
 	unsafe {
@@ -274,8 +284,6 @@ pub fn create_account_and_claim() {
 
 /// views
 
-/// TODO get_key_information
-
 #[no_mangle]
 pub(crate) unsafe fn get_rules() {
     return_bytes(&storage_read(RULES_KEY), true);
@@ -287,3 +295,10 @@ pub(crate) unsafe fn get_floor() {
 	let floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
     return_bytes(floor.to_string().as_bytes(), false);
 }
+
+#[no_mangle]
+pub(crate) unsafe fn get_key_information() {
+	let exit_option = can_exit();
+    return_value(format!("{{\"balance\":\"0\",\"trial_data\":{{\"exit\":{}}}}}", exit_option.is_some()).as_bytes());
+}
+

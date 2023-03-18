@@ -95,6 +95,11 @@ test('implicit account setup', async (t) => {
 
 	const contractBytes = fs.readFileSync('./out/main.wasm');
 	account = new Account(connection, accountId)
+	account.viewFunction2 = ({ contractId, methodName, args }) => account.viewFunction(
+		contractId,
+		methodName,
+		args
+	);
 
 	if (DELETE_EXISTING) {
 		let skip = false
@@ -152,30 +157,48 @@ test('implicit account setup', async (t) => {
  * testing view method of contract
  */
 test('get_rules', async (t) => {
-	const res = await account.viewFunction(
-		accountId,
-		'get_rules'
-	);
+	const res = await account.viewFunction2({
+		contractId: accountId,
+		methodName: 'get_rules',
+	})
 	console.log('get_rules', res);
 
 	t.true(true);
 });
 
-test('exit before execute (fails due to floor)', async (t) => {
+test('get key information before execute', async (t) => {
 
-	const keys = await account.getAccessKeys();
-
-	await account.functionCall({
+	const res = await account.viewFunction2({
 		contractId: accountId,
-		methodName: 'create_account_and_claim',
+		methodName: 'get_key_information',
 		args: {
-			new_account_id: accountId,
-			new_public_key: keys[0].public_key,
+			blah: true
 		}
 	});
 
+	console.log(res)
+
 	t.true(true);
 });
+
+test('exit before execute (fails due to floor)', async (t) => {
+	const keys = await account.getAccessKeys();
+
+	try {
+		await account.functionCall({
+			contractId: accountId,
+			methodName: 'create_account_and_claim',
+			args: {
+				new_account_id: accountId,
+				new_public_key: keys[0].public_key,
+			}
+		});
+		t.true(false);
+	} catch (e) {
+		t.true(true);
+	}
+});
+
 
 /** 
  * testing execute basic tx
@@ -259,11 +282,26 @@ test('execute', async (t) => {
  * testing view method of contract
  */
 test('get_floor', async (t) => {
-	const res = await account.viewFunction(
-		accountId,
-		'get_floor'
-	);
+	const res = await account.viewFunction2({
+		contractId: accountId,
+		methodName: 'get_floor',
+	})
 	console.log('get_floor', res);
+
+	t.true(true);
+});
+
+test('get key information after execute', async (t) => {
+
+	const res = await account.viewFunction2({
+		contractId: accountId,
+		methodName: 'get_key_information',
+		args: {
+			blah: true
+		}
+	});
+
+	console.log(res)
 
 	t.true(true);
 });

@@ -28,26 +28,32 @@ pub(crate) fn create_promise_batch(account_id: String, prev_id: Option<u64>) -> 
     }
 }
 
-pub(crate) unsafe fn return_bytes_format(bytes: &[u8], json: bool) -> Vec<u8> {
-    let mut ret_data = vec![DOUBLE_QUOTE_BYTE];
+pub(crate) fn return_bytes_format(bytes: &[u8], json: bool) -> Vec<u8> {
+    let mut ret_data = vec![];
     if json == true {
         let bytes_str = alloc::str::from_utf8(&bytes).ok().unwrap_or_else(|| sys::panic());
         ret_data.extend_from_slice(bytes_str
-            .replace("\"", "\\\"")
+            // .replace("\"", "\\\"")
             .replace("|kP|", "")
             .replace("|kS|", "")
             .as_bytes()
         );
     } else {
+        ret_data.extend_from_slice(&[DOUBLE_QUOTE_BYTE]);
         ret_data.extend_from_slice(bytes);
+        ret_data.extend_from_slice(&[DOUBLE_QUOTE_BYTE]);
     }
-    ret_data.push(DOUBLE_QUOTE_BYTE);
     ret_data
 }
 
-pub(crate) unsafe fn return_bytes(bytes: &[u8], json: bool) {
-    let ret_data = return_bytes_format(bytes, json);
-    near_sys::value_return(ret_data.len() as u64, ret_data.as_ptr() as u64);
+pub(crate) fn return_value(bytes: &[u8]) {
+    unsafe {
+        near_sys::value_return(bytes.len() as u64, bytes.as_ptr() as u64);
+    }
+}
+
+pub(crate) fn return_bytes(bytes: &[u8], json: bool) {
+    return_value(&return_bytes_format(bytes, json));
 }
 
 pub(crate) fn swrite(key: &[u8], val: &[u8]) {

@@ -14,12 +14,12 @@ pub(crate) fn get_u128(str: &str, key: &str) -> u128 {
     amount.parse().ok().unwrap_or_else(|| sys::panic())
 }
 
-pub(crate) fn get_input(from_borsh: bool, strip_slashes: bool) -> String {
+pub(crate) fn get_input(strip_slashes: bool) -> String {
     unsafe { near_sys::input(REGISTER_0) };
-    let mut input = register_read(REGISTER_0);
-    if from_borsh {
-        input = input[1..input.len()-1].to_vec();
-    }
+    let input = register_read(REGISTER_0);
+    // if from_borsh {
+    //     input = input[1..input.len()-1].to_vec();
+    // }
 	let input_str = alloc::str::from_utf8(&input).ok().unwrap_or_else(|| sys::panic());
     if strip_slashes {
         return input_str.replace("\\\"", "\"");
