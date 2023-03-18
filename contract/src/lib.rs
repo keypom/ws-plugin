@@ -126,6 +126,7 @@ pub fn execute() {
 
 			// TODO do we support NEAR transfers?
 
+
 			match action_type.as_bytes() {
 				b"FunctionCall" => {
 					let method_name = get_string(params, "|kP|methodName");
@@ -133,7 +134,8 @@ pub fn execute() {
 					if methods[receiver_index][0] != ANY_METHOD && !methods[receiver_index].contains(&method_name) {
 						sys::panic()
 					}
-					let args = &get_string(params, "|kP|args").replace("\\", "");
+					let args = &get_string(params, "|kP|args")
+						.replace("\\\\", "\\");
 					let deposit = get_u128(params, DEPOSIT);
 					// check if deposit exceeds allowed limit for function calls for this contract
 					if deposit > amounts[receiver_index] {
@@ -187,7 +189,7 @@ pub unsafe fn callback() {
 	let result_bytes = register_read(REGISTER_0);
 	let result = alloc::str::from_utf8(&result_bytes).ok().unwrap_or_else(|| sys::panic());
 	
-	if result != "true" {
+	if result == "false" {
 		return log("promise false");
 	}
 
@@ -207,6 +209,9 @@ pub unsafe fn callback() {
 
 #[no_mangle]
 pub fn create_account_and_claim() {
+
+	// allow funder to hard exit trial at any time, delete storage FIRST delete account and reclaim NEAR
+
 	// parse the input and get the public key
     let input_str = get_input(true, true);	
 	let (_, public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
@@ -268,6 +273,8 @@ pub fn create_account_and_claim() {
 }
 
 /// views
+
+/// TODO get_key_information
 
 #[no_mangle]
 pub(crate) unsafe fn get_rules() {
