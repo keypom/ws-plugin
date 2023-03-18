@@ -59,7 +59,7 @@ pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
 #[no_mangle]
 pub fn setup() {
     let input_str = get_input(true);
-	swrite(RULES_KEY, input_str[1..input_str.len()-1].as_bytes());
+	swrite(RULES_KEY, input_str.as_bytes());
 	let floor = account_balance();
     swrite(FLOOR_KEY, &floor.to_le_bytes());
 }

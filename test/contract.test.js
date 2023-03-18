@@ -127,14 +127,14 @@ test('implicit account setup', async (t) => {
 			deployContract(contractBytes),
 			functionCall(
 				'setup',
-				JSON.stringify(wrapParams({
+				wrapParams({
 					contracts: ['testnet', 'beta.keypom.testnet'],
 					amounts: [parseNearAmount('1'), parseNearAmount('0.1')],
 					methods: ['claim:create_account:create_account_and_claim', 'create_drop:delete_keys'],
 					funder: fundingAccountId,
 					repay: parseNearAmount('0.5'),
 					floor: parseNearAmount('0.92'),
-				})),
+				}),
 				gas,
 			),
 		];
