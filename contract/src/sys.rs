@@ -101,9 +101,14 @@ pub(crate) fn account_balance() -> u128 {
     u128::from_le_bytes(buffer)
 }
 
-pub(crate) fn current_account_id() -> String {
-    // get current account to setup for callback
-    unsafe { near_sys::current_account_id(REGISTER_0) };
+pub(crate) fn sys_account_id(which: u8) -> String {
+    unsafe {
+        match which {
+            0 => near_sys::current_account_id(REGISTER_0),
+            1 => near_sys::predecessor_account_id(REGISTER_0),
+            _ => near_sys::current_account_id(REGISTER_0),
+        }
+    };
     let current_account_id_bytes = register_read(REGISTER_0);
     alloc::str::from_utf8(&current_account_id_bytes).ok().unwrap_or_else(|| sys::panic()).to_string()
 }

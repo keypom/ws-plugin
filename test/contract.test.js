@@ -156,7 +156,7 @@ test('implicit account setup', async (t) => {
 /** 
  * testing view method of contract
  */
-test('get_rules', async (t) => {
+test('get_rules before execute', async (t) => {
 	const res = await account.viewFunction2({
 		contractId: accountId,
 		methodName: 'get_rules',
@@ -277,16 +277,12 @@ test('execute', async (t) => {
 	t.true(true);
 });
 
-
-/** 
- * testing view method of contract
- */
-test('get_floor', async (t) => {
+test('get_rules after execute', async (t) => {
 	const res = await account.viewFunction2({
 		contractId: accountId,
-		methodName: 'get_floor',
+		methodName: 'get_rules',
 	})
-	console.log('get_floor', res);
+	console.log('get_rules', res);
 
 	t.true(true);
 });

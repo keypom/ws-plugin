@@ -58,6 +58,19 @@ pub unsafe fn on_alloc_error(_: core::alloc::Layout) -> ! {
 
 #[no_mangle]
 pub fn setup() {
+	// check if funder is calling to switch rules, if not funder and rules set, panic
+	unsafe {
+		if near_sys::storage_has_key(RULES_KEY.len() as u64, RULES_KEY.as_ptr() as u64) == 1 {
+			let rules_str = storage_read_str(RULES_KEY);
+			let funder = get_string(&rules_str, "|kP|funder").to_string();
+			let predecessor_account_id = sys_account_id(1);
+			if funder != predecessor_account_id {
+				log("only funder");
+				sys::panic();
+			}
+		}
+	}
+	
     let input_str = get_input(true);
 	swrite(RULES_KEY, input_str.as_bytes());
 	let floor = account_balance();
@@ -163,7 +176,7 @@ pub fn execute() {
 
 		// after all action promise calls have been added to the batch, promise.then call a new self callback call
 		unsafe {
-			let cb_id = create_promise_batch(current_account_id(), Some(id));
+			let cb_id = create_promise_batch(sys_account_id(0), Some(id));
 			promises.push(cb_id);
 			// all deposits and gas attached to actions count against the floor and used gas up to this call (ignore callback gas)
 			let callback_deposit: u64 = 0;
@@ -201,19 +214,15 @@ pub unsafe fn callback() {
 	let gas_cost = prepaid_gas * YOCTO_PER_GAS_UNIT;
 
 	// update floor
-	let floor_bytes = storage_read(FLOOR_KEY);
-	let mut floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
+	let mut floor = get_floor();
 	floor = floor - attached_deposit - gas_cost;
     swrite(FLOOR_KEY, &floor.to_le_bytes());
 }
 
-fn can_exit() -> Option<(u128, String)> {
+fn can_exit(rules_str: &str) -> Option<u128> {
 	// rules
-	let rules_data = storage_read(RULES_KEY);
-	let rules_str = alloc::str::from_utf8(&rules_data).ok().unwrap_or_else(|| sys::panic());
 	let repay: u128 = get_u128(rules_str, "|kP|repay");
 	let floor_exit: u128 = get_u128(rules_str, "|kP|floor");
-	let funder = get_string(rules_str, "|kP|funder").to_string();
 	let account_balance = account_balance();
 	// log(&format!("repay: {}", repay));
 	// log(&format!("floor_exit: {}", floor_exit));
@@ -224,20 +233,41 @@ fn can_exit() -> Option<(u128, String)> {
 		return None;
 	}
 	// floor
-	let floor_bytes = storage_read(FLOOR_KEY);
-	let floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
+	let floor = get_floor();
 	// log(&format!("floor: {}", floor));
 	if floor > floor_exit {
 		log("floor > floor_exit");
 		return None;
 	}
 
-	Some((repay, funder))
+	Some(repay)
 }
 
 #[no_mangle]
 pub fn create_account_and_claim() {
+	let rules_str = storage_read_str(RULES_KEY);
+	let funder = get_string(&rules_str, "|kP|funder").to_string();
+	let predecessor_account_id = sys_account_id(1);
 
+	// allow funder to claim trial with new full access key at any time
+	let refund_id = if funder != predecessor_account_id {
+		// non-funder e.g. user will have to pass exit conditions
+		let exit_option = can_exit(&rules_str);
+		let repay = exit_option.unwrap_or_else(|| sys::panic());
+
+		// non-funder will have to repay funder from this account
+		let refund_id = create_promise_batch(funder, None);
+		unsafe {
+			near_sys::promise_batch_action_transfer(
+				refund_id,
+				repay.to_le_bytes().as_ptr() as u64,
+			)
+		}
+		Some(refund_id)
+	} else {
+		None
+	};
+	
 	// parse the input and get the public key
     let input_str = get_input(true);	
 	let (_, public_key_str) = split_once(&input_str, "\"new_public_key\":\"");
@@ -248,25 +278,11 @@ pub fn create_account_and_claim() {
 	// log(&format!("public_key: {:?}", public_key));
 	// log(&format!("public_key_len: {}", public_key.len()));
 
-	// allow funder to hard exit trial at any time, delete storage FIRST delete account and reclaim NEAR
-
-	let exit_option = can_exit();
-	let (repay, funder) = exit_option.unwrap_or_else(|| sys::panic());
-
-	// promise for add key
-	let refund_id = create_promise_batch(funder, None);
-	unsafe {
-		near_sys::promise_batch_action_transfer(
-			refund_id,
-			repay.to_le_bytes().as_ptr() as u64,
-		)
-	}
-
-	// cleanup
+	// cleanup account storage, keys, deploy empty string for contract
 	storage_remove(RULES_KEY);
 	storage_remove(FLOOR_KEY);
 	// promise for add key .then from refund make sure refund finishes first
-	let exit_id = create_promise_batch(current_account_id(), Some(refund_id));
+	let exit_id = create_promise_batch(sys_account_id(0), refund_id);
 	unsafe {
 		near_sys::promise_batch_action_deploy_contract(
 			exit_id,
@@ -287,23 +303,29 @@ pub fn create_account_and_claim() {
 	}
 }
 
+/// helpers
+
+pub fn get_floor() -> u128 {
+	let floor_bytes = storage_read(FLOOR_KEY);
+	u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()))
+}
+
 /// views
 
 #[no_mangle]
 pub(crate) unsafe fn get_rules() {
-    return_bytes(&storage_read(RULES_KEY), true);
-}
-
-#[no_mangle]
-pub(crate) unsafe fn get_floor() {
-	let floor_bytes = storage_read(FLOOR_KEY);
-	let floor = u128::from_le_bytes(floor_bytes.try_into().ok().unwrap_or_else(|| sys::panic()));
-    return_bytes(floor.to_string().as_bytes(), false);
+	// get rules str pop last char '}'
+	let mut rules = storage_read_str(RULES_KEY);
+	rules.pop();
+	// get current floor value as string
+	let floor_str = get_floor().to_string();
+	// inject and return bytes
+    return_bytes(&format!("{},\"current_floor\":\"{}\"}}", rules, floor_str).as_bytes(), true);
 }
 
 #[no_mangle]
 pub(crate) unsafe fn get_key_information() {
-	let exit_option = can_exit();
+	let exit_option = can_exit(&storage_read_str(RULES_KEY));
     return_value(format!("{{\"balance\":\"0\",\"trial_data\":{{\"exit\":{}}}}}", exit_option.is_some()).as_bytes());
 }
 
